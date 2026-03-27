@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getTrips } from "../services/api";
 import TrekCard from "../components/TrekCard";
 import { Link } from "react-router-dom";
+import { fetchPublicProfile } from "../services/publicProfile";
 
 const typingLines = [
   "Explore Beautiful Treks...",
@@ -9,12 +10,16 @@ const typingLines = [
   "Book Your Next Summit..."
 ];
 
+const FALLBACK_HERO =
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1900&q=80";
+
 const Home = () => {
   const [trips, setTrips] = useState([]);
   const [scrollY, setScrollY] = useState(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [heroImage, setHeroImage] = useState(FALLBACK_HERO);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -23,6 +28,44 @@ const Home = () => {
     };
 
     fetchTrips();
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      try {
+        const profile = await fetchPublicProfile();
+
+        if (!mounted) {
+          return;
+        }
+
+        const image = String(profile?.mainBackgroundImage || "").trim();
+
+        if (!image) {
+          setHeroImage(FALLBACK_HERO);
+          return;
+        }
+
+        if (/^https?:\/\//i.test(image)) {
+          setHeroImage(image);
+          return;
+        }
+
+        setHeroImage(`http://localhost:5000/uploads/${image}`);
+      } catch (_error) {
+        if (mounted) {
+          setHeroImage(FALLBACK_HERO);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -90,19 +133,18 @@ const Home = () => {
 
   return (
     <div>
-      <section className="relative h-[540px] overflow-hidden flex items-center justify-center">
+      <section className="relative h-[460px] sm:h-[520px] overflow-hidden flex items-center justify-center">
         <div
           className="absolute inset-0 bg-cover bg-center scale-110"
           style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1900&q=80)",
+            backgroundImage: `url(${heroImage})`,
             transform: `translateY(${Math.min(scrollY * 0.35, 180)}px) scale(1.12)`
           }}
         />
 
         <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/50 to-black/70" />
 
-        <div className="relative z-10 bg-black/45 backdrop-blur-sm border border-white/20 p-8 md:p-10 rounded-2xl text-center max-w-3xl mx-5 animate-fadeUp">
+        <div className="relative z-10 bg-black/45 backdrop-blur-sm border border-white/20 p-6 sm:p-8 md:p-10 rounded-2xl text-center max-w-3xl mx-4 sm:mx-5 animate-fadeUp">
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 min-h-[74px] md:min-h-[90px]">
             {typedText}
             <span className="typing-caret">|</span>
@@ -121,10 +163,10 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto p-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h2 className="text-3xl font-bold mb-8 text-center">Popular Treks</h2>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {trips.map((trip, index) => (
             <div
               key={trip._id}

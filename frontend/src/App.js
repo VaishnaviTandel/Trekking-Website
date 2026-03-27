@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -16,21 +17,67 @@ import ManageTrips from "./admin/ManageTrips";
 import EditTrip from "./admin/EditTrip";
 import ContactMessages from "./admin/ContactMessages";
 import Bookings from "./admin/Bookings";
+import Settings from "./admin/Settings";
+import PaymentSettings from "./admin/PaymentSettings";
+import AdminLogin from "./admin/AdminLogin";
+import AdminRegister from "./admin/AdminRegister";
+import AdminRoute from "./admin/AdminRoute";
 
 function App() {
-
   const location = useLocation();
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+  const adminSiteUrl = process.env.REACT_APP_ADMIN_SITE_URL || "";
+  const userSiteUrl = process.env.REACT_APP_USER_SITE_URL || "";
 
   // Check if current page is admin
   const isAdmin = location.pathname.startsWith("/admin");
 
-  return (
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
-    <div>
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const currentOrigin = window.location.origin;
+    const pathWithQuery = `${location.pathname}${location.search || ""}`;
+
+    if (isAdmin && adminSiteUrl) {
+      try {
+        const target = new URL(adminSiteUrl);
+        if (target.origin !== currentOrigin) {
+          window.location.href = `${target.origin}${pathWithQuery}`;
+        }
+      } catch (_error) {
+        // Ignore invalid URL env configuration
+      }
+      return;
+    }
+
+    if (!isAdmin && userSiteUrl) {
+      try {
+        const target = new URL(userSiteUrl);
+        if (target.origin !== currentOrigin) {
+          window.location.href = `${target.origin}${pathWithQuery}`;
+        }
+      } catch (_error) {
+        // Ignore invalid URL env configuration
+      }
+    }
+  }, [adminSiteUrl, userSiteUrl, isAdmin, location.pathname, location.search]);
+
+  const toggleTheme = () => {
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+  };
+
+  return (
+    <div className={`app-shell ${theme}`}>
 
       {/* SHOW NAVBAR ONLY FOR USER PAGES */}
-
-      {!isAdmin && <Navbar />}
+      {!isAdmin && <Navbar theme={theme} onToggleTheme={toggleTheme} />}
 
       <Routes>
 
@@ -43,18 +90,78 @@ function App() {
         <Route path="/trip/:id" element={<TripDetails />} />
 
         <Route path="/contact" element={<Contact />} />
-        <Route path="/booking/:id" element={<BookingPage />} />
+        <Route path="/booking/:tripId" element={<BookingPage />} />
+        <Route path="/booking/:id/select" element={<BookingPage />} />
 
-        {/* ADMIN ROUTES */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/add-trip" element={<AddTrip />} />
+        {/* ADMIN AUTH ROUTES */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/register" element={<AdminRegister />} />
 
-        <Route path="/admin/trips" element={<ManageTrips />} />
-
-        <Route path="/admin/edit/:id" element={<EditTrip />} />
-
-        <Route path="/admin/messages" element={<ContactMessages />} />
-        <Route path="/admin/bookings" element={<Bookings />} />
+        {/* PROTECTED ADMIN ROUTES */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/add-trip"
+          element={
+            <AdminRoute>
+              <AddTrip />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/trips"
+          element={
+            <AdminRoute>
+              <ManageTrips />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/edit/:id"
+          element={
+            <AdminRoute>
+              <EditTrip />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/messages"
+          element={
+            <AdminRoute>
+              <ContactMessages />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/bookings"
+          element={
+            <AdminRoute>
+              <Bookings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminRoute>
+              <Settings />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/payment-settings"
+          element={
+            <AdminRoute>
+              <PaymentSettings />
+            </AdminRoute>
+          }
+        />
 
       </Routes>
 
@@ -63,9 +170,7 @@ function App() {
       {!isAdmin && <Footer />}
 
     </div>
-
   );
-
 }
 
 export default App;

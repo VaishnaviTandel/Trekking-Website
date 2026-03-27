@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+dotenv.config();
 const path = require("path");
 const contactRoutes = require("./routes/contact");
 const connectDB = require("./config/db");
@@ -8,8 +9,7 @@ const tripRoutes = require("./routes/tripRoutes");
 const replyRoutes = require("./routes/reply");
 const departuresRoute = require("./routes/departures");
 const bookingRoutes = require("./routes/bookings");
-
-dotenv.config();
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 
@@ -42,6 +42,8 @@ app.use("/api/contact",contactRoutes);
 app.use("/api/reply", replyRoutes);
 app.use("/api/trips", departuresRoute);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/payment", require("./routes/payment"));
+app.use("/api/admin", adminRoutes);
 
 /* ===============================
    TEST ROUTE

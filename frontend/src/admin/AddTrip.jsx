@@ -101,10 +101,11 @@ export default function AddTrip() {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow">
-        <h2 className="text-2xl font-bold mb-6">Add New Trip</h2>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow">
+          <h2 className="text-2xl font-bold mb-6">Add New Trip</h2>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
           <div>
             <label className="block mb-1 font-semibold">Trip Title</label>
             <input
@@ -189,7 +190,7 @@ export default function AddTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <label className="block mb-1 font-semibold">Gallery Images</label>
             <input
               type="file"
@@ -199,7 +200,7 @@ export default function AddTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <label className="block mb-1 font-semibold">Trip Overview</label>
             <textarea
               name="description"
@@ -211,7 +212,7 @@ export default function AddTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <label className="block mb-1 font-semibold">Itinerary</label>
             <textarea
               name="itinerary"
@@ -222,7 +223,7 @@ export default function AddTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <div className="flex items-center justify-between mb-3">
               <label className="font-semibold">Departures</label>
               <button
@@ -236,20 +237,20 @@ export default function AddTrip() {
 
             <div className="space-y-3">
               {departures.map((departure, index) => (
-                <div key={index} className="grid grid-cols-12 gap-3 items-center">
+                <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
                   <input
                     type="text"
                     value={departure.batchLabel}
                     onChange={(e) => handleDepartureChange(index, "batchLabel", e.target.value)}
                     placeholder="Batch name"
-                    className="col-span-4 border p-2 rounded"
+                    className="sm:col-span-4 border p-2 rounded"
                   />
 
                   <input
                     type="date"
                     value={departure.date}
                     onChange={(e) => handleDepartureChange(index, "date", e.target.value)}
-                    className="col-span-3 border p-2 rounded"
+                    className="sm:col-span-3 border p-2 rounded"
                   />
 
                   <input
@@ -258,13 +259,13 @@ export default function AddTrip() {
                     placeholder="Seats"
                     value={departure.totalSeats}
                     onChange={(e) => handleDepartureChange(index, "totalSeats", e.target.value)}
-                    className="col-span-3 border p-2 rounded"
+                    className="sm:col-span-3 border p-2 rounded"
                   />
 
                   <button
                     type="button"
                     onClick={() => removeDepartureRow(index)}
-                    className="col-span-2 bg-red-500 text-white py-2 rounded hover:bg-red-600"
+                    className="sm:col-span-2 bg-red-500 text-white py-2 rounded hover:bg-red-600"
                     disabled={departures.length === 1}
                   >
                     Remove
@@ -274,7 +275,7 @@ export default function AddTrip() {
             </div>
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <button
               type="submit"
               className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700"
@@ -282,7 +283,8 @@ export default function AddTrip() {
               Add Trip
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </AdminLayout>
   );

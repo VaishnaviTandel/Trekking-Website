@@ -59,3 +59,277 @@
   opacity: 1;
   transform: translateY(0) scale(1);
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-in-out;
+}
+.available-date {
+  background-color: #d1fae5 !important;
+  border-radius: 50%;
+}
+
+.selected-date {
+  background-color: #16a34a !important;
+  color: white !important;
+  border-radius: 50%;
+}
+
+:root {
+  --app-bg: #f8fafc;
+  --app-text: #0f172a;
+  --navbar-bg: #ffffff;
+  --navbar-text: #0f172a;
+  --footer-bg: #e2e8f0;
+  --footer-text: #0f172a;
+  --toggle-border: rgba(15, 23, 42, 0.35);
+}
+
+[data-theme="dark"] {
+  --app-bg: #020617;
+  --app-text: #e2e8f0;
+  --navbar-bg: #020617;
+  --navbar-text: #e2e8f0;
+  --footer-bg: #020617;
+  --footer-text: #cbd5e1;
+  --toggle-border: rgba(148, 163, 184, 0.7);
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.site-navbar {
+  background: var(--navbar-bg);
+  color: var(--navbar-text);
+}
+
+.site-footer {
+  background: var(--footer-bg);
+  color: var(--footer-text);
+}
+
+.theme-toggle {
+  border-color: var(--toggle-border);
+  background: rgba(148, 163, 184, 0.12);
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: #0f172a !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: #020617 !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #111827 !important;
+}
+
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-gray-800,
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-gray-600,
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-black {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-300,
+[data-theme="dark"] .border-gray-700 {
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #0b1220 !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .shadow,
+[data-theme="dark"] .shadow-sm,
+[data-theme="dark"] .shadow-lg {
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.4) !important;
+}
+
+.footer-link {
+  color: inherit;
+  opacity: 0.95;
+}
+
+.footer-link:hover {
+  opacity: 1;
+}
+
+.policy-modal-panel {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .policy-modal-panel {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.trip-snapshot-card {
+  background: #ffffff;
+}
+
+.trip-card-meta {
+  color: #475569;
+}
+
+.trip-departure-card.is-open {
+  background: #dcfce7;
+}
+
+.trip-departure-card.is-sold {
+  background: #fee2e2;
+}
+
+[data-theme="dark"] .trip-snapshot-card {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .trip-card-meta {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .trip-departure-card.is-open {
+  background: #14532d;
+  color: #e2e8f0;
+  border-color: #166534 !important;
+}
+
+[data-theme="dark"] .trip-departure-card.is-sold {
+  background: #7f1d1d;
+  color: #fee2e2;
+  border-color: #991b1b !important;
+}
+
+.booking-calendar-wrap {
+  background: #f8fafc;
+}
+
+.booking-calendar {
+  width: 100%;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.booking-calendar .react-calendar__navigation button {
+  color: #0f172a;
+}
+
+.booking-calendar .react-calendar__month-view__weekdays__weekday {
+  color: #334155;
+}
+
+.booking-calendar .react-calendar__tile {
+  color: #0f172a;
+}
+
+.booking-calendar .react-calendar__tile:disabled {
+  color: #94a3b8;
+}
+
+.booking-batch-card.is-default {
+  border-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.booking-batch-card.is-default:hover {
+  border-color: #86efac;
+}
+
+.booking-batch-card.is-selected {
+  border-color: #22c55e;
+  background: #ecfdf5;
+}
+
+.booking-batch-card.is-disabled {
+  opacity: 0.5;
+}
+
+.booking-batch-meta {
+  color: #475569;
+}
+
+[data-theme="dark"] .booking-calendar-wrap {
+  background: #020617 !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .booking-calendar {
+  background: #020617 !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .booking-calendar .react-calendar__navigation button,
+[data-theme="dark"] .booking-calendar .react-calendar__month-view__weekdays__weekday,
+[data-theme="dark"] .booking-calendar .react-calendar__tile {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .booking-calendar .react-calendar__tile:disabled {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .available-date {
+  background-color: #134e4a !important;
+  color: #99f6e4 !important;
+}
+
+[data-theme="dark"] .selected-date {
+  background-color: #22c55e !important;
+  color: #052e16 !important;
+}
+
+[data-theme="dark"] .booking-batch-card.is-default {
+  border-color: #334155 !important;
+  background: #0b1220 !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .booking-batch-card.is-default:hover {
+  border-color: #16a34a !important;
+  background: #0f172a !important;
+}
+
+[data-theme="dark"] .booking-batch-card.is-selected {
+  border-color: #22c55e !important;
+  background: #14532d !important;
+  color: #dcfce7 !important;
+}
+
+[data-theme="dark"] .booking-batch-meta {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .booking-batch-card.is-selected .booking-batch-meta {
+  color: #bbf7d0 !important;
+}

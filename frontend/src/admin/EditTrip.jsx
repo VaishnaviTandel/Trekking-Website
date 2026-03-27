@@ -152,10 +152,11 @@ export default function EditTrip() {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow">
-        <h2 className="text-2xl font-bold mb-6">Edit Trip</h2>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow">
+          <h2 className="text-2xl font-bold mb-6">Edit Trip</h2>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
           <div>
             <label className="font-semibold">Title</label>
             <input
@@ -234,7 +235,7 @@ export default function EditTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <label className="font-semibold">Gallery Images</label>
             <input
               type="file"
@@ -244,7 +245,7 @@ export default function EditTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <label className="font-semibold">Overview</label>
             <textarea
               name="description"
@@ -255,7 +256,7 @@ export default function EditTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <label className="font-semibold">Itinerary</label>
             <textarea
               name="itinerary"
@@ -265,7 +266,7 @@ export default function EditTrip() {
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <div className="flex items-center justify-between mb-3">
               <label className="font-semibold">Departures</label>
               <button
@@ -279,12 +280,15 @@ export default function EditTrip() {
 
             <div className="space-y-3">
               {departures.map((departure, index) => (
-                <div key={departure._id || index} className="grid grid-cols-12 gap-3 items-center">
+                <div
+                  key={departure._id || index}
+                  className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center"
+                >
                   <input
                     type="text"
                     value={departure.batchLabel}
                     onChange={(e) => handleDepartureChange(index, "batchLabel", e.target.value)}
-                    className="col-span-3 border p-2 rounded"
+                    className="sm:col-span-3 border p-2 rounded"
                     placeholder="Batch name"
                   />
 
@@ -292,7 +296,7 @@ export default function EditTrip() {
                     type="date"
                     value={departure.date}
                     onChange={(e) => handleDepartureChange(index, "date", e.target.value)}
-                    className="col-span-3 border p-2 rounded"
+                    className="sm:col-span-3 border p-2 rounded"
                   />
 
                   <input
@@ -301,17 +305,17 @@ export default function EditTrip() {
                     placeholder="Seats"
                     value={departure.totalSeats}
                     onChange={(e) => handleDepartureChange(index, "totalSeats", e.target.value)}
-                    className="col-span-2 border p-2 rounded"
+                    className="sm:col-span-2 border p-2 rounded"
                   />
 
-                  <div className="col-span-2 text-sm text-gray-600">
+                  <div className="sm:col-span-2 text-sm text-gray-600">
                     Booked: {departure.bookedSeats || 0}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeDepartureRow(index)}
-                    className="col-span-2 bg-red-500 text-white py-2 rounded hover:bg-red-600"
+                    className="sm:col-span-2 bg-red-500 text-white py-2 rounded hover:bg-red-600"
                     disabled={departures.length === 1}
                   >
                     Remove
@@ -321,7 +325,7 @@ export default function EditTrip() {
             </div>
           </div>
 
-          <div className="col-span-2">
+          <div className="md:col-span-2">
             <button
               type="submit"
               className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700"
@@ -329,7 +333,8 @@ export default function EditTrip() {
               Update Trip
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </AdminLayout>
   );

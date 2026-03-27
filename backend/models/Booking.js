@@ -1,124 +1,109 @@
 const mongoose = require("mongoose");
 
-const bookingSchema = new mongoose.Schema(
+const memberSchema = new mongoose.Schema(
   {
-    trip: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Trip",
-      required: true
-    },
-    tripTitle: {
+    name: {
       type: String,
-      required: true
-    },
-    tripPrice: {
-      type: Number,
-      required: true
-    },
-    departureDate: {
-      type: Date,
-      required: true
-    },
-    endDate: {
-      type: Date,
-      required: true
-    },
-    departureDateKey: {
-      type: String,
-      required: true
-    },
-    departureId: {
-      type: String,
-      required: true
-    },
-    durationDays: {
-      type: Number,
-      required: true,
-      min: 1,
-      default: 1
-    },
-    selectedBatch: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    participants: {
-      type: Number,
-      required: true,
-      min: 1,
-      default: 1
-    },
-    customerName: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    customerEmail: {
-      type: String,
-      required: true,
       trim: true,
-      lowercase: true
-    },
-    customerPhone: {
-      type: String,
-      trim: true
-    },
-    notes: {
-      type: String,
-      trim: true
-    },
-    totalAmount: {
-      type: Number,
       required: true
     },
-    subtotalAmount: {
+    age: {
       type: Number,
-      required: true
+      min: 1
     },
-    gstRate: {
-      type: Number,
-      required: true,
-      default: 0.05
-    },
-    gstAmount: {
-      type: Number,
-      required: true,
-      default: 0
-    },
-    paymentMethod: {
+    gender: {
       type: String,
-      enum: ["upi", "card", "netbanking", "cash"],
-      default: "cash"
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["pending", "paid"],
-      default: "pending"
-    },
-    paymentReference: {
-      type: String,
-      trim: true
-    },
-    invoiceNumber: {
-      type: String,
-      required: true,
-      unique: true
-    },
-    status: {
-      type: String,
-      enum: ["pending", "confirmed", "cancelled"],
-      default: "pending"
-    },
-    adminNote: {
-      type: String,
-      trim: true
-    },
-    confirmedAt: Date,
-    cancelledAt: Date
+      default: "Prefer not to say"
+    }
   },
-  {
-    timestamps: true
-  }
+  { _id: false }
 );
+
+const bookingSchema = new mongoose.Schema({
+  tripId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Trip",
+    required: true
+  },
+  tripTitle: {
+    type: String,
+    trim: true
+  },
+  selectedBatchId: String,
+  selectedBatch: {
+    type: String,
+    trim: true,
+    default: "Standard Batch"
+  },
+  departureDate: Date,
+  endDate: Date,
+  participants: {
+    type: Number,
+    min: 1,
+    required: true
+  },
+  customerName: {
+    type: String,
+    trim: true,
+    required: true
+  },
+  customerEmail: {
+    type: String,
+    trim: true,
+    required: true
+  },
+  customerPhone: {
+    type: String,
+    trim: true,
+    required: true
+  },
+  customerAge: {
+    type: Number,
+    min: 1
+  },
+  customerGender: {
+    type: String,
+    default: "Prefer not to say"
+  },
+  members: {
+    type: [memberSchema],
+    default: []
+  },
+  pricePerPerson: {
+    type: Number,
+    min: 0,
+    required: true
+  },
+  totalAmount: {
+    type: Number,
+    min: 0,
+    required: true
+  },
+  paymentMethod: {
+    type: String,
+    default: "upi_qr"
+  },
+  paymentReference: {
+    type: String,
+    trim: true
+  },
+  paymentScreenshot: String,
+  paymentStatus: {
+    type: String,
+    enum: ["pending", "paid", "rejected"],
+    default: "pending"
+  },
+  status: {
+    type: String,
+    enum: ["pending", "confirmed", "cancelled"],
+    default: "pending"
+  },
+  invoiceNumber: {
+    type: String,
+    trim: true
+  },
+  confirmedAt: Date,
+  cancelledAt: Date
+}, { timestamps: true });
 
 module.exports = mongoose.model("Booking", bookingSchema);

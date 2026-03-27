@@ -38,13 +38,13 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <h2 className="text-2xl font-bold mb-6">Admin Dashboard</h2>
 
         {loading ? (
           <div className="bg-white p-6 rounded shadow">Loading dashboard...</div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-white p-6 shadow rounded">
               <h3 className="text-gray-500">Total Trips</h3>
               <p className="text-3xl font-bold">{summary.totalTrips}</p>
@@ -75,7 +75,7 @@ export default function AdminDashboard() {
               <p className="text-3xl font-bold">{summary.cancelledBookings}</p>
             </div>
 
-            <div className="bg-white p-6 shadow rounded md:col-span-3">
+            <div className="bg-white p-6 shadow rounded sm:col-span-2 xl:col-span-3">
               <h3 className="text-gray-500">Revenue from Confirmed Bookings</h3>
               <p className="text-3xl font-bold text-green-700 mt-1">
                 {formatPrice(summary.totalRevenue)}

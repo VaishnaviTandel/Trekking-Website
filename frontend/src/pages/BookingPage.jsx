@@ -1,14 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
 import Calendar from "react-calendar";
-import axios from "axios";
 import "react-calendar/dist/Calendar.css";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-const API_BASE = "http://localhost:5000";
-const PAYMENT_METHODS = ["upi", "card", "netbanking", "cash"];
-const GST_RATE = 0.05;
-const UPI_ID = process.env.REACT_APP_UPI_ID || "trekplatform@upi";
-const UPI_PAYEE_NAME = process.env.REACT_APP_UPI_NAME || "Trek Platform";
+const API = "http://localhost:5000";
 
 const toDateKey = (value) => {
   const date = new Date(value);
@@ -17,35 +12,11 @@ const toDateKey = (value) => {
     return "";
   }
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
-};
-
-const parseDurationDays = (trip) => {
-  const parsed = Number(trip?.durationDays);
-
-  if (Number.isInteger(parsed) && parsed > 0) {
-    return parsed;
-  }
-
-  const matched = String(trip?.duration || "").match(/\d+/);
-  const fromText = matched ? Number(matched[0]) : 1;
-
-  return Number.isInteger(fromText) && fromText > 0 ? fromText : 1;
-};
-
-const addDays = (value, daysToAdd) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  date.setDate(date.getDate() + daysToAdd);
-  return date;
 };
 
 const formatDate = (value) => {
@@ -56,22 +27,25 @@ const formatDate = (value) => {
   }
 
   return date.toLocaleDateString("en-IN", {
-    weekday: "short",
     day: "2-digit",
     month: "short",
     year: "numeric"
   });
 };
 
-const formatDateRange = (startDate, endDate) => {
-  const start = formatDate(startDate);
-  const end = formatDate(endDate);
-
-  if (start === end) {
-    return start;
+const formatDateRange = (start, end) => {
+  if (!start || !end) {
+    return formatDate(start);
   }
 
-  return `${start} to ${end}`;
+  const startText = formatDate(start);
+  const endText = formatDate(end);
+
+  if (startText === endText) {
+    return startText;
+  }
+
+  return `${startText} to ${endText}`;
 };
 
 const formatPrice = (amount) =>
@@ -81,654 +55,768 @@ const formatPrice = (amount) =>
     maximumFractionDigits: 0
   }).format(Number(amount) || 0);
 
-const BookingPage = () => {
-  const { id } = useParams();
-  const location = useLocation();
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern = /^[0-9]{10,15}$/;
+
+export default function BookingPage() {
+  const { tripId, id } = useParams();
+  const resolvedTripId = tripId || id;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preSelectedDate = searchParams.get("date");
+  const preSelectedBatch = searchParams.get("batch");
 
   const [trip, setTrip] = useState(null);
-  const [departures, setDepartures] = useState([]);
-  const [selectedDateKey, setSelectedDateKey] = useState("");
-  const [selectedDepartureId, setSelectedDepartureId] = useState("");
+  const [qrCode, setQrCode] = useState("");
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [successBooking, setSuccessBooking] = useState(null);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [step, setStep] = useState(1);
 
-  const [form, setForm] = useState({
-    customerName: "",
-    customerEmail: "",
-    customerPhone: "",
-    participants: 1,
-    notes: "",
-    paymentMethod: "upi",
-    paymentReference: ""
+  const [selectedBatchId, setSelectedBatchId] = useState("");
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
+  const [participants, setParticipants] = useState(1);
+  const [screenshot, setScreenshot] = useState(null);
+  const [paymentReference, setPaymentReference] = useState("");
+
+  const [primaryPerson, setPrimaryPerson] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    age: "",
+    gender: "Male"
   });
 
-  const preselectedDate = useMemo(() => {
-    const queryDate = new URLSearchParams(location.search).get("date");
-    return toDateKey(queryDate);
-  }, [location.search]);
-
-  const preselectedBatchId = useMemo(
-    () => new URLSearchParams(location.search).get("batch") || "",
-    [location.search]
-  );
+  const [members, setMembers] = useState([]);
+  const [successData, setSuccessData] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const [tripRes, departuresRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/trips/${id}`),
-        axios.get(`${API_BASE}/api/trips/${id}/departures`)
-      ]);
+    const fetchTrip = async () => {
+      setLoading(true);
+      setError("");
 
-      setTrip(tripRes.data);
-      setDepartures(departuresRes.data || []);
+      try {
+        const response = await fetch(`${API}/api/trips/${resolvedTripId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.message || "Failed to load trip.");
+        }
+
+        setTrip(data);
+      } catch (apiError) {
+        setError(apiError.message || "Failed to load trip.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchData();
-  }, [id]);
+    if (resolvedTripId) {
+      fetchTrip();
+    }
+  }, [resolvedTripId]);
+
+  useEffect(() => {
+    const fetchQr = async () => {
+      try {
+        const response = await fetch(`${API}/api/payment/qr`);
+        const data = await response.json();
+        setQrCode(data?.qrCode || "");
+      } catch (_error) {
+        setQrCode("");
+      }
+    };
+
+    fetchQr();
+  }, []);
+
+  const departures = useMemo(() => {
+    if (!trip?.departures?.length) {
+      return [];
+    }
+
+    return [...trip.departures]
+      .filter((departure) => departure?.date)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [trip]);
 
   const departuresByDate = useMemo(() => {
-    const grouped = {};
+    const map = new Map();
 
     departures.forEach((departure) => {
       const key = toDateKey(departure.date);
-
-      if (!key) {
-        return;
-      }
-
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-
-      grouped[key].push(departure);
+      const current = map.get(key) || [];
+      current.push(departure);
+      map.set(key, current);
     });
 
-    return grouped;
+    return map;
   }, [departures]);
 
-  const todayKey = toDateKey(new Date());
+  const availableDateKeys = useMemo(() => {
+    const set = new Set();
 
-  const selectedDateBatches = useMemo(
-    () => (selectedDateKey ? departuresByDate[selectedDateKey] || [] : []),
-    [departuresByDate, selectedDateKey]
-  );
+    departures.forEach((departure) => {
+      const seats = Number(departure.totalSeats || 0) - Number(departure.bookedSeats || 0);
 
-  const selectedDeparture = selectedDateBatches.find(
-    (departure) => departure._id === selectedDepartureId
-  );
-
-  const durationDays = parseDurationDays(trip);
-
-  const selectedStartDate = selectedDateKey ? new Date(selectedDateKey) : null;
-  const selectedEndDate = selectedStartDate ? addDays(selectedStartDate, durationDays - 1) : null;
-  const selectedSeatsLeft = selectedDeparture
-    ? Math.max(0, selectedDeparture.totalSeats - selectedDeparture.bookedSeats)
-    : 0;
-
-  const participantCount = Math.max(1, Number(form.participants) || 1);
-  const pricePerPerson = Number(trip?.price) || 0;
-  const subtotalAmount = pricePerPerson * participantCount;
-  const gstAmount = Number((subtotalAmount * GST_RATE).toFixed(2));
-  const totalAmount = Number((subtotalAmount + gstAmount).toFixed(2));
-
-  const upiNote = `${trip?.title || "Trek Booking"} - ${selectedDateKey || "date"} - ${
-    selectedDeparture?.batchLabel || "batch"
-  }`;
-  const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(
-    UPI_PAYEE_NAME
-  )}&am=${encodeURIComponent(totalAmount.toFixed(2))}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
-  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-    upiLink
-  )}`;
-
-  useEffect(() => {
-    if (!selectedDateBatches.length) {
-      setSelectedDepartureId("");
-      return;
-    }
-
-    const availableBatch = selectedDateBatches.find(
-      (departure) => departure.totalSeats - departure.bookedSeats > 0
-    );
-
-    if (!availableBatch) {
-      setSelectedDepartureId("");
-      return;
-    }
-
-    setSelectedDepartureId((current) => {
-      const isCurrentStillAvailable = selectedDateBatches.some(
-        (departure) => departure._id === current && departure.totalSeats - departure.bookedSeats > 0
-      );
-
-      return isCurrentStillAvailable ? current : availableBatch._id;
-    });
-  }, [selectedDateBatches]);
-
-  useEffect(() => {
-    if (!preselectedDate) {
-      return;
-    }
-
-    const batches = departuresByDate[preselectedDate] || [];
-
-    if (!batches.length || preselectedDate < todayKey) {
-      return;
-    }
-
-    const hasAvailability = batches.some(
-      (departure) => departure.totalSeats - departure.bookedSeats > 0
-    );
-
-    if (hasAvailability) {
-      setSelectedDateKey(preselectedDate);
-
-      const matchedBatch = batches.find(
-        (departure) =>
-          departure._id === preselectedBatchId &&
-          departure.totalSeats - departure.bookedSeats > 0
-      );
-
-      if (matchedBatch) {
-        setSelectedDepartureId(matchedBatch._id);
+      if (seats > 0) {
+        set.add(toDateKey(departure.date));
       }
+    });
+
+    return set;
+  }, [departures]);
+
+  useEffect(() => {
+    if (!departures.length) {
+      return;
     }
-  }, [preselectedDate, preselectedBatchId, departuresByDate, todayKey]);
 
-  const getStatus = (date) => {
-    const key = toDateKey(date);
-    const batches = departuresByDate[key] || [];
+    const fromBatch = preSelectedBatch
+      ? departures.find((departure) => String(departure._id) === preSelectedBatch)
+      : null;
 
-    if (!batches.length || key < todayKey) {
-      return "disabled";
+    const fromDate = preSelectedDate
+      ? departures.find((departure) => toDateKey(departure.date) === preSelectedDate)
+      : null;
+
+    const withSeats =
+      departures.find(
+        (departure) => Number(departure.totalSeats || 0) - Number(departure.bookedSeats || 0) > 0
+      ) || departures[0];
+
+    const initialDeparture = fromBatch || fromDate || withSeats;
+
+    setSelectedBatchId(String(initialDeparture?._id || ""));
+    setSelectedCalendarDate(initialDeparture?.date ? new Date(initialDeparture.date) : null);
+  }, [departures, preSelectedBatch, preSelectedDate]);
+
+  const selectedDateKey = useMemo(() => toDateKey(selectedCalendarDate), [selectedCalendarDate]);
+
+  const departuresForSelectedDate = useMemo(() => {
+    if (!selectedDateKey) {
+      return [];
     }
 
-    const totalSeats = batches.reduce((sum, batch) => sum + (batch.totalSeats || 0), 0);
-    const bookedSeats = batches.reduce((sum, batch) => sum + (batch.bookedSeats || 0), 0);
-    const seatsLeft = totalSeats - bookedSeats;
+    return departuresByDate.get(selectedDateKey) || [];
+  }, [departuresByDate, selectedDateKey]);
+
+  useEffect(() => {
+    if (!selectedDateKey) {
+      return;
+    }
+
+    const selectedInDay = departuresForSelectedDate.find(
+      (departure) => String(departure._id) === selectedBatchId
+    );
+
+    if (selectedInDay) {
+      return;
+    }
+
+    const withSeats = departuresForSelectedDate.find(
+      (departure) => Number(departure.totalSeats || 0) - Number(departure.bookedSeats || 0) > 0
+    );
+
+    setSelectedBatchId(String(withSeats?._id || departuresForSelectedDate[0]?._id || ""));
+  }, [departuresForSelectedDate, selectedBatchId, selectedDateKey]);
+
+  const selectedDeparture = useMemo(
+    () => departures.find((departure) => String(departure._id) === selectedBatchId),
+    [departures, selectedBatchId]
+  );
+
+  const seatsLeft = useMemo(() => {
+    if (!selectedDeparture) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Number(selectedDeparture.totalSeats || 0) - Number(selectedDeparture.bookedSeats || 0)
+    );
+  }, [selectedDeparture]);
+
+  useEffect(() => {
+    if (seatsLeft === 0) {
+      setParticipants(1);
+      return;
+    }
+
+    if (participants > seatsLeft) {
+      setParticipants(seatsLeft);
+    }
+  }, [participants, seatsLeft]);
+
+  useEffect(() => {
+    const additionalCount = Math.max(0, participants - 1);
+    setMembers((current) => {
+      const next = [...current];
+
+      if (next.length < additionalCount) {
+        for (let index = next.length; index < additionalCount; index += 1) {
+          next.push({ name: "", age: "", gender: "Male" });
+        }
+      } else if (next.length > additionalCount) {
+        next.splice(additionalCount);
+      }
+
+      return next;
+    });
+  }, [participants]);
+
+  const amount = useMemo(() => Number(trip?.price || 0) * participants, [participants, trip?.price]);
+
+  const qrImageUrl = useMemo(() => {
+    if (!qrCode) {
+      return "";
+    }
+
+    if (/^https?:\/\//i.test(qrCode)) {
+      return qrCode;
+    }
+
+    if (qrCode.includes("/")) {
+      return `${API}/uploads/${qrCode}`;
+    }
+
+    return `${API}/uploads/qr/${qrCode}`;
+  }, [qrCode]);
+
+  const validateStepOne = () => {
+    if (!selectedCalendarDate) {
+      setError("Please select date from the calendar.");
+      return false;
+    }
+
+    if (!selectedDeparture) {
+      setError("Please select an available batch for selected date.");
+      return false;
+    }
 
     if (seatsLeft <= 0) {
-      return "sold";
+      setError("Selected departure is sold out. Please choose another date.");
+      return false;
     }
 
-    if (seatsLeft <= Math.ceil(totalSeats * 0.3)) {
-      return "fast";
-    }
-
-    return "available";
-  };
-
-  const requiresPaymentReference = form.paymentMethod !== "cash";
-
-  useEffect(() => {
-    if (form.paymentMethod === "cash") {
-      setPaymentConfirmed(false);
-    }
-  }, [form.paymentMethod]);
-
-  useEffect(() => {
-    if (form.paymentMethod !== "cash") {
-      setPaymentConfirmed(false);
-    }
-  }, [selectedDateKey, selectedDepartureId, form.participants, form.paymentMethod]);
-
-  useEffect(() => {
-    if (!selectedSeatsLeft) {
-      return;
-    }
-
-    setForm((current) => {
-      const currentParticipants = Math.max(1, Number(current.participants) || 1);
-
-      if (currentParticipants <= selectedSeatsLeft) {
-        return current;
-      }
-
-      return {
-        ...current,
-        participants: selectedSeatsLeft
-      };
-    });
-  }, [selectedSeatsLeft]);
-
-  const handleInputChange = (e) => {
-    if (e.target.name === "participants") {
-      const rawValue = Number(e.target.value);
-      const parsedValue = Number.isFinite(rawValue) ? rawValue : 1;
-      const cappedBySeats = selectedSeatsLeft ? Math.min(parsedValue, selectedSeatsLeft) : parsedValue;
-
-      setForm({
-        ...form,
-        participants: Math.max(1, cappedBySeats)
-      });
-
-      return;
-    }
-
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const submitBooking = async (e) => {
-    e.preventDefault();
-
-    if (!selectedDateKey) {
-      setError("Please choose a start date.");
-      return;
-    }
-
-    if (!selectedDepartureId) {
-      setError("Please choose an available batch.");
-      return;
-    }
-
-    if (selectedSeatsLeft && participantCount > selectedSeatsLeft) {
-      setError("Participants cannot be more than seats left in selected batch.");
-      return;
-    }
-
-    if (requiresPaymentReference && !form.paymentReference.trim()) {
-      setError("Payment reference is required for online payment.");
-      return;
-    }
-
-    if (requiresPaymentReference && !paymentConfirmed) {
-      setError("Please complete payment confirmation before submitting booking.");
-      return;
+    if (participants < 1 || participants > seatsLeft) {
+      setError(`Please choose between 1 and ${seatsLeft} participant(s).`);
+      return false;
     }
 
     setError("");
+    return true;
+  };
+
+  const validateStepTwo = () => {
+    if (!primaryPerson.name.trim()) {
+      setError("Lead traveler name is required.");
+      return false;
+    }
+
+    if (!emailPattern.test(primaryPerson.email.trim())) {
+      setError("Please enter a valid email address.");
+      return false;
+    }
+
+    if (!phonePattern.test(primaryPerson.phone.trim())) {
+      setError("Please enter a valid phone number.");
+      return false;
+    }
+
+    const missingMember = members.find((member) => !member.name.trim());
+
+    if (missingMember) {
+      setError("Please fill names for all additional members.");
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
+
+  const submitBooking = async () => {
+    if (!validateStepOne() || !validateStepTwo()) {
+      return;
+    }
+
+    if (!paymentReference.trim()) {
+      setError("Please enter your payment reference number.");
+      return;
+    }
+
     setSubmitting(true);
+    setError("");
 
     try {
-      const response = await axios.post(`${API_BASE}/api/bookings`, {
-        tripId: id,
-        departureDate: selectedDateKey,
-        departureId: selectedDepartureId,
-        selectedBatch: selectedDeparture?.batchLabel,
-        participants: participantCount,
-        customerName: form.customerName,
-        customerEmail: form.customerEmail,
-        customerPhone: form.customerPhone,
-        notes: form.notes,
-        paymentMethod: form.paymentMethod,
-        paymentReference: form.paymentReference,
-        paymentStatus: requiresPaymentReference && paymentConfirmed ? "paid" : "pending"
-      });
+      const payload = new FormData();
+      payload.append("tripId", resolvedTripId);
+      payload.append("selectedBatchId", selectedBatchId);
+      payload.append("departureDate", toDateKey(selectedDeparture?.date));
+      payload.append("participants", String(participants));
+      payload.append("customerName", primaryPerson.name.trim());
+      payload.append("customerEmail", primaryPerson.email.trim());
+      payload.append("customerPhone", primaryPerson.phone.trim());
+      payload.append("customerAge", primaryPerson.age ? String(primaryPerson.age) : "");
+      payload.append("customerGender", primaryPerson.gender);
+      payload.append("members", JSON.stringify(members));
+      payload.append("paymentReference", paymentReference.trim());
 
-      setSuccessBooking(response.data);
-    } catch (apiError) {
-      setError(apiError.response?.data?.message || "Booking failed. Please try again.");
+      if (screenshot) {
+        payload.append("screenshot", screenshot);
+      }
+
+      const response = await fetch(`${API}/api/bookings`, {
+        method: "POST",
+        body: payload
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Booking submission failed.");
+      }
+
+      setSuccessData(data?.booking || null);
+    } catch (submitError) {
+      setError(submitError.message || "Booking submission failed.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!trip) {
-    return <div className="p-10 text-center">Loading...</div>;
+  if (loading) {
+    return <div className="p-10 text-center text-lg font-semibold">Loading booking page...</div>;
   }
 
-  if (successBooking) {
+  if (error && !trip) {
+    return <div className="p-10 text-center text-red-600">{error}</div>;
+  }
+
+  if (!trip) {
+    return <div className="p-10 text-center text-red-600">Trip not found.</div>;
+  }
+
+  if (successData) {
     return (
-      <div className="bg-gray-100 min-h-screen p-8 md:p-12">
-        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-8">
-          <h1 className="text-3xl font-bold text-green-600">Booking Request Submitted</h1>
-          <p className="text-gray-700 mt-3">
-            Your booking is pending admin confirmation. Invoice and payment details are recorded.
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-white rounded-2xl shadow-lg p-8 border border-green-100">
+          <h1 className="text-3xl font-bold text-green-700">Booking submitted successfully</h1>
+          <p className="mt-3 text-gray-700">
+            Your payment reference has been recorded. Our admin team will verify and confirm your
+            booking.
+          </p>
+          <p className="mt-2 text-gray-700">
+            Invoice Number: <span className="font-semibold">{successData.invoiceNumber}</span>
+          </p>
+          <p className="mt-2 text-gray-700">
+            Once confirmed, an invoice email will be sent to{" "}
+            <span className="font-semibold">{successData.customerEmail}</span>.
           </p>
 
-          <div className="mt-6 border rounded-lg p-5 bg-gray-50 space-y-2 text-sm">
-            <p>
-              <span className="font-semibold">Invoice:</span> {successBooking.invoiceNumber}
-            </p>
-            <p>
-              <span className="font-semibold">Trip:</span> {successBooking.tripTitle}
-            </p>
-            <p>
-              <span className="font-semibold">Batch:</span> {successBooking.selectedBatch}
-            </p>
-            <p>
-              <span className="font-semibold">Trek Dates:</span>{" "}
-              {formatDateRange(successBooking.departureDate, successBooking.endDate)}
-            </p>
-            <p>
-              <span className="font-semibold">Participants:</span> {successBooking.participants}
-            </p>
-            <p>
-              <span className="font-semibold">Subtotal:</span> {formatPrice(successBooking.subtotalAmount)}
-            </p>
-            <p>
-              <span className="font-semibold">GST:</span> {formatPrice(successBooking.gstAmount)}
-            </p>
-            <p>
-              <span className="font-semibold">Amount:</span> {formatPrice(successBooking.totalAmount)}
-            </p>
-            <p>
-              <span className="font-semibold">Payment:</span>{" "}
-              {successBooking.paymentStatus} via {successBooking.paymentMethod}
-            </p>
-            <p>
-              <span className="font-semibold">Status:</span> Pending confirmation
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/trips")}
+            className="mt-6 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700"
+          >
+            Explore More Treks
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <div
-        className="h-[300px] bg-cover bg-center flex items-end"
-        style={{ backgroundImage: `url(${API_BASE}/uploads/${trip.coverImage})` }}
-      >
-        <div className="bg-black/55 w-full p-6 text-white">
-          <h1 className="text-3xl font-bold">{trip.title}</h1>
-          <p>
-            {trip.duration} ({durationDays} day{durationDays > 1 ? "s" : ""})
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto p-6 md:p-10 -mt-16">
-        <div className="bg-white rounded-xl shadow-xl p-6 md:p-8 grid md:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-2xl text-green-700 font-bold mb-4">Select Trek Start Date</h2>
-
-            <Calendar
-              onClickDay={(value) => {
-                const status = getStatus(value);
-
-                if (status === "available" || status === "fast") {
-                  setSelectedDateKey(toDateKey(value));
-                }
-              }}
-              value={selectedDateKey ? new Date(selectedDateKey) : null}
-              tileDisabled={({ date }) => {
-                const status = getStatus(date);
-                return status === "disabled" || status === "sold";
-              }}
-              tileClassName={({ date }) => {
-                const status = getStatus(date);
-
-                if (status === "available") {
-                  return "bg-green-100";
-                }
-
-                if (status === "fast") {
-                  return "bg-yellow-100";
-                }
-
-                if (status === "sold") {
-                  return "bg-red-100 text-gray-600";
-                }
-
-                return "opacity-40";
-              }}
-            />
-
-            <div className="mt-5 grid grid-cols-1 gap-2 text-sm text-gray-600">
-              <p>
-                <span className="inline-block w-3 h-3 bg-green-100 border border-green-300 mr-2" /> Available
-              </p>
-              <p>
-                <span className="inline-block w-3 h-3 bg-yellow-100 border border-yellow-300 mr-2" /> Fast filling
-              </p>
-              <p>
-                <span className="inline-block w-3 h-3 bg-red-100 border border-red-300 mr-2" /> Sold out
-              </p>
-            </div>
+    <div className="bg-slate-50 min-h-screen py-8 px-4">
+      <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.7fr,1fr] gap-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-wrap gap-2 mb-6">
+            {["Trip & Seats", "Traveler Details", "Payment & Submit"].map((label, index) => (
+              <span
+                key={label}
+                className={`px-3 py-1.5 text-sm rounded-full ${
+                  step >= index + 1
+                    ? "bg-green-100 text-green-700 font-semibold"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {index + 1}. {label}
+              </span>
+            ))}
           </div>
 
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900">Booking Details</h3>
+          {step === 1 && (
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900">Select Date and People</h2>
+              <p className="text-gray-600 mt-1">
+                Choose date from calendar. Only this trip's available dates are selectable.
+              </p>
 
-            <p className="text-sm text-gray-600 mt-2 mb-5">
-              Select only the first day. End date is auto-calculated based on trek duration.
-            </p>
+              <div className="mt-5 grid md:grid-cols-[320px,1fr] gap-5 items-start">
+                <div className="booking-calendar-wrap border rounded-xl p-3 bg-gray-50">
+                  <Calendar
+                    className="booking-calendar"
+                    onChange={(value) => {
+                      const selectedValue = Array.isArray(value) ? value[0] : value;
+                      setSelectedCalendarDate(selectedValue || null);
+                    }}
+                    value={selectedCalendarDate}
+                    tileDisabled={({ date, view }) =>
+                      view === "month" && !availableDateKeys.has(toDateKey(date))
+                    }
+                    tileClassName={({ date, view }) => {
+                      if (view !== "month") {
+                        return null;
+                      }
 
-            <form className="space-y-4" onSubmit={submitBooking}>
-              <input
-                type="text"
-                name="customerName"
-                placeholder="Full Name"
-                value={form.customerName}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+                      const dateKey = toDateKey(date);
+                      const classes = [];
 
-              <input
-                type="email"
-                name="customerEmail"
-                placeholder="Email"
-                value={form.customerEmail}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+                      if (availableDateKeys.has(dateKey)) {
+                        classes.push("available-date");
+                      }
 
-              <input
-                type="text"
-                name="customerPhone"
-                placeholder="Phone"
-                value={form.customerPhone}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+                      if (selectedDateKey && dateKey === selectedDateKey) {
+                        classes.push("selected-date");
+                      }
 
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Choose Batch</label>
-                <select
-                  value={selectedDepartureId}
-                  onChange={(e) => setSelectedDepartureId(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  required
-                  disabled={!selectedDateKey}
-                >
-                  <option value="">Select batch</option>
-                  {selectedDateBatches.map((departure) => {
-                    const seatsLeft = departure.totalSeats - departure.bookedSeats;
+                      return classes.join(" ") || null;
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">Green dates are available for booking.</p>
+                </div>
 
-                    return (
-                      <option
-                        key={departure._id}
-                        value={departure._id}
-                        disabled={seatsLeft <= 0}
-                      >
-                        {departure.batchLabel || "Standard Batch"} ({seatsLeft <= 0 ? "Sold Out" : `${seatsLeft} seats left`})
-                      </option>
-                    );
-                  })}
-                </select>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Available batches</p>
+
+                  {departuresForSelectedDate.length === 0 ? (
+                    <p className="text-sm text-gray-500 border rounded-lg p-4 bg-gray-50">
+                      No departures for selected date. Please choose another available date.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {departuresForSelectedDate.map((departure) => {
+                        const departureSeatsLeft = Math.max(
+                          0,
+                          Number(departure.totalSeats || 0) - Number(departure.bookedSeats || 0)
+                        );
+
+                        const endDate = new Date(departure.date);
+                        const durationDays = Number(trip.durationDays) || 1;
+                        endDate.setUTCDate(endDate.getUTCDate() + durationDays - 1);
+
+                        return (
+                          <label
+                            key={departure._id}
+                            className={`booking-batch-card block border rounded-xl p-4 cursor-pointer transition ${
+                              String(departure._id) === selectedBatchId ? "is-selected" : "is-default"
+                            } ${departureSeatsLeft <= 0 ? "is-disabled" : ""}`}
+                          >
+                            <input
+                              type="radio"
+                              name="departure"
+                              className="mr-2"
+                              value={departure._id}
+                              checked={String(departure._id) === selectedBatchId}
+                              disabled={departureSeatsLeft <= 0}
+                              onChange={() => setSelectedBatchId(String(departure._id))}
+                            />
+                            <span className="font-semibold">
+                              {departure.batchLabel || "Standard Batch"}
+                            </span>
+                            <p className="booking-batch-meta text-sm mt-1">
+                              {formatDateRange(departure.date, endDate)}
+                            </p>
+                            <p className="booking-batch-meta text-sm mt-1">
+                              {departureSeatsLeft <= 0
+                                ? "Sold Out"
+                                : `${departureSeatsLeft} / ${Number(
+                                    departure.totalSeats || 0
+                                  )} seats available`}
+                            </p>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-700 mb-1">Participants</label>
-                <div className="flex items-center gap-2">
+              <div className="mt-6">
+                <p className="text-sm text-gray-500">Travelers</p>
+                <div className="mt-2 inline-flex items-center border rounded-lg overflow-hidden">
                   <button
                     type="button"
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        participants: Math.max(1, Number(current.participants || 1) - 1)
-                      }))
-                    }
-                    className="w-10 h-10 rounded border text-lg"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200"
+                    onClick={() => setParticipants((current) => Math.max(1, current - 1))}
                   >
                     -
                   </button>
-
-                  <input
-                    type="number"
-                    name="participants"
-                    min="1"
-                    max={selectedSeatsLeft || undefined}
-                    value={form.participants}
-                    onChange={handleInputChange}
-                    className="w-full border rounded px-3 py-2 text-center"
-                    required
-                  />
-
+                  <span className="px-5 py-2 font-semibold">{participants}</span>
                   <button
                     type="button"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200"
                     onClick={() =>
-                      setForm((current) => {
-                        const nextValue = Number(current.participants || 1) + 1;
-                        const cappedValue = selectedSeatsLeft
-                          ? Math.min(nextValue, selectedSeatsLeft)
-                          : nextValue;
-
-                        return {
-                          ...current,
-                          participants: cappedValue
-                        };
-                      })
+                      setParticipants((current) => Math.min(Math.max(1, seatsLeft), current + 1))
                     }
-                    className="w-10 h-10 rounded border text-lg"
-                    disabled={Boolean(selectedSeatsLeft && participantCount >= selectedSeatsLeft)}
                   >
                     +
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {formatPrice(pricePerPerson)} per person x {participantCount} participant(s)
+                <p className="text-xs text-gray-500 mt-2">Max allowed for selected date: {seatsLeft}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Current seats left: {seatsLeft} / {Number(selectedDeparture?.totalSeats || 0)}
                 </p>
               </div>
-
-              <div className="border rounded p-3 bg-gray-50">
-                <p className="text-sm font-semibold mb-2">Payment</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {PAYMENT_METHODS.map((method) => (
-                    <label key={method} className="flex items-center gap-2 capitalize">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method}
-                        checked={form.paymentMethod === method}
-                        onChange={handleInputChange}
-                      />
-                      {method}
-                    </label>
-                  ))}
-                </div>
-
-                <input
-                  type="text"
-                  name="paymentReference"
-                  placeholder={
-                    requiresPaymentReference
-                      ? "Payment Ref / UPI Txn ID"
-                      : "Payment reference (optional for cash)"
-                  }
-                  value={form.paymentReference}
-                  onChange={handleInputChange}
-                  className="w-full border rounded px-3 py-2 mt-3"
-                />
-
-                {requiresPaymentReference && (
-                  <div className="mt-4 border rounded-lg p-3 bg-white">
-                    <p className="text-sm font-semibold mb-2">Scan UPI QR and Pay</p>
-                    <img
-                      src={qrCodeImageUrl}
-                      alt="UPI QR Code"
-                      className="w-44 h-44 mx-auto border rounded"
-                    />
-
-                    <div className="text-xs text-gray-600 mt-3 space-y-1">
-                      <p>
-                        <span className="font-semibold">UPI ID:</span> {UPI_ID}
-                      </p>
-                      <p>
-                        <span className="font-semibold">Subtotal:</span> {formatPrice(subtotalAmount)}
-                      </p>
-                      <p>
-                        <span className="font-semibold">GST (5%):</span> {formatPrice(gstAmount)}
-                      </p>
-                      <p>
-                        <span className="font-semibold">Payable:</span> {formatPrice(totalAmount)}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!form.paymentReference.trim()) {
-                          setError("Enter payment reference/UTR after payment.");
-                          return;
-                        }
-
-                        setPaymentConfirmed(true);
-                        setError("");
-                      }}
-                      className="w-full mt-3 bg-green-600 text-white py-2 rounded hover:bg-green-700"
-                    >
-                      I Have Paid - Confirm Payment
-                    </button>
-
-                    {paymentConfirmed && (
-                      <p className="text-green-700 text-sm mt-2 font-semibold">
-                        Payment successful. You can now submit booking.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <textarea
-                name="notes"
-                placeholder="Special request (optional)"
-                value={form.notes}
-                onChange={handleInputChange}
-                className="w-full border rounded px-3 py-2 h-24"
-              />
-
-              <div className="bg-gray-50 border rounded p-4 text-sm space-y-1">
-                <p>
-                  <span className="font-semibold">Batch:</span>{" "}
-                  {selectedDeparture?.batchLabel || "Not selected"}
-                </p>
-                <p>
-                  <span className="font-semibold">Trek Dates:</span>{" "}
-                  {selectedStartDate && selectedEndDate
-                    ? formatDateRange(selectedStartDate, selectedEndDate)
-                    : "Not selected"}
-                </p>
-                <p>
-                  <span className="font-semibold">Seats left:</span>{" "}
-                  {selectedDeparture ? selectedSeatsLeft : "-"}
-                </p>
-                <p>
-                  <span className="font-semibold">Subtotal:</span> {formatPrice(subtotalAmount)}
-                </p>
-                <p>
-                  <span className="font-semibold">GST (5%):</span> {formatPrice(gstAmount)}
-                </p>
-                <p>
-                  <span className="font-semibold">Total:</span> {formatPrice(totalAmount)}
-                </p>
-              </div>
-
-              {error && <p className="text-red-600 text-sm">{error}</p>}
 
               <button
-                type="submit"
-                disabled={submitting || !selectedDateKey || !selectedDepartureId}
-                className="w-full bg-green-600 text-white py-3 rounded font-semibold hover:bg-green-700 disabled:bg-gray-400"
+                type="button"
+                onClick={() => {
+                  if (validateStepOne()) {
+                    setStep(2);
+                  }
+                }}
+                className="mt-6 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700"
               >
-                {submitting ? "Submitting..." : "Pay & Submit Booking"}
+                Continue
               </button>
-            </form>
-          </div>
+            </section>
+          )}
+
+          {step === 2 && (
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900">Traveler Details</h2>
+              <p className="text-gray-600 mt-1">Lead traveler and additional member information.</p>
+
+              <div className="mt-5 grid md:grid-cols-2 gap-3">
+                <input
+                  className="border rounded-lg px-3 py-2"
+                  placeholder="Lead traveler name"
+                  value={primaryPerson.name}
+                  onChange={(event) =>
+                    setPrimaryPerson((current) => ({ ...current, name: event.target.value }))
+                  }
+                />
+                <input
+                  className="border rounded-lg px-3 py-2"
+                  placeholder="Email"
+                  value={primaryPerson.email}
+                  onChange={(event) =>
+                    setPrimaryPerson((current) => ({ ...current, email: event.target.value }))
+                  }
+                />
+                <input
+                  className="border rounded-lg px-3 py-2"
+                  placeholder="Phone"
+                  value={primaryPerson.phone}
+                  onChange={(event) =>
+                    setPrimaryPerson((current) => ({ ...current, phone: event.target.value }))
+                  }
+                />
+                <input
+                  className="border rounded-lg px-3 py-2"
+                  placeholder="Age"
+                  type="number"
+                  min="1"
+                  value={primaryPerson.age}
+                  onChange={(event) =>
+                    setPrimaryPerson((current) => ({ ...current, age: event.target.value }))
+                  }
+                />
+                <select
+                  className="border rounded-lg px-3 py-2 md:col-span-2"
+                  value={primaryPerson.gender}
+                  onChange={(event) =>
+                    setPrimaryPerson((current) => ({ ...current, gender: event.target.value }))
+                  }
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              {members.length > 0 && (
+                <div className="mt-7">
+                  <h3 className="text-lg font-semibold">Additional Members</h3>
+                  <div className="space-y-4 mt-3">
+                    {members.map((member, index) => (
+                      <div key={`member-${index}`} className="border rounded-lg p-4 bg-gray-50">
+                        <p className="font-medium mb-3">Member {index + 2}</p>
+                        <div className="grid md:grid-cols-3 gap-3">
+                          <input
+                            className="border rounded-lg px-3 py-2"
+                            placeholder="Name"
+                            value={member.name}
+                            onChange={(event) =>
+                              setMembers((current) => {
+                                const next = [...current];
+                                next[index] = { ...next[index], name: event.target.value };
+                                return next;
+                              })
+                            }
+                          />
+                          <input
+                            className="border rounded-lg px-3 py-2"
+                            placeholder="Age"
+                            type="number"
+                            min="1"
+                            value={member.age}
+                            onChange={(event) =>
+                              setMembers((current) => {
+                                const next = [...current];
+                                next[index] = { ...next[index], age: event.target.value };
+                                return next;
+                              })
+                            }
+                          />
+                          <select
+                            className="border rounded-lg px-3 py-2"
+                            value={member.gender}
+                            onChange={(event) =>
+                              setMembers((current) => {
+                                const next = [...current];
+                                next[index] = { ...next[index], gender: event.target.value };
+                                return next;
+                              })
+                            }
+                          >
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-7 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateStepTwo()) {
+                      setStep(3);
+                    }
+                  }}
+                  className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700"
+                >
+                  Continue to Payment
+                </button>
+              </div>
+            </section>
+          )}
+
+          {step === 3 && (
+            <section>
+              <h2 className="text-2xl font-bold text-gray-900">Pay and Submit</h2>
+              <p className="text-gray-600 mt-1">
+                Make payment using QR code, then submit payment reference.
+              </p>
+
+              <div className="mt-5 border rounded-xl p-5 bg-gray-50">
+                {qrImageUrl ? (
+                  <img
+                    src={qrImageUrl}
+                    alt="Payment QR"
+                    className="w-56 h-56 object-contain mx-auto bg-white rounded-lg p-3 border"
+                  />
+                ) : (
+                  <p className="text-sm text-red-600 text-center">
+                    QR code is not configured yet. Contact admin.
+                  </p>
+                )}
+                <p className="text-center text-lg font-semibold mt-4">
+                  Pay {formatPrice(amount)} for {participants} traveler(s)
+                </p>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                <input
+                  className="border rounded-lg px-3 py-2"
+                  placeholder="Payment reference number (UTR / UPI Ref)"
+                  value={paymentReference}
+                  onChange={(event) => setPaymentReference(event.target.value)}
+                />
+
+                <label className="text-sm text-gray-600">
+                  Upload payment screenshot (optional but recommended)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="border rounded-lg px-3 py-2 bg-white"
+                  onChange={(event) => setScreenshot(event.target.files?.[0] || null)}
+                />
+              </div>
+
+              <div className="mt-7 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={submitBooking}
+                  className="bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                >
+                  {submitting ? "Submitting..." : "Submit Booking"}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {error && <p className="mt-5 text-sm text-red-600">{error}</p>}
         </div>
+
+        <aside className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit lg:sticky lg:top-24">
+          <h3 className="text-xl font-bold text-gray-900">{trip.title}</h3>
+          <p className="text-gray-600 mt-1">{trip.location}</p>
+
+          <div className="mt-5 space-y-2 text-sm text-gray-700">
+            <p>
+              <span className="font-semibold">Batch:</span>{" "}
+              {selectedDeparture?.batchLabel || "Select a date"}
+            </p>
+            <p>
+              <span className="font-semibold">Date:</span> {formatDate(selectedDeparture?.date)}
+            </p>
+            <p>
+              <span className="font-semibold">People:</span> {participants}
+            </p>
+            <p>
+              <span className="font-semibold">Current Seats Left:</span> {seatsLeft} /{" "}
+              {Number(selectedDeparture?.totalSeats || 0)}
+            </p>
+            <p>
+              <span className="font-semibold">Per Person:</span> {formatPrice(trip.price)}
+            </p>
+          </div>
+
+          <div className="mt-6 pt-4 border-t">
+            <p className="text-sm text-gray-600">Total Amount</p>
+            <p className="text-3xl font-bold text-green-700">{formatPrice(amount)}</p>
+          </div>
+
+          <p className="mt-4 text-xs text-gray-500">
+            Booking remains pending until admin verifies payment and confirms. Invoice is sent by
+            email after confirmation.
+          </p>
+        </aside>
       </div>
     </div>
   );
-};
-
-export default BookingPage;
+}

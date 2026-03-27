@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getTripById, getTrips } from "../services/api";
 
@@ -68,6 +68,9 @@ const formatDateRange = (startDate, endDate) => {
   return `${start} to ${end}`;
 };
 
+const getSeatsLeft = (departure) =>
+  Math.max(0, Number(departure?.totalSeats || 0) - Number(departure?.bookedSeats || 0));
+
 const TripDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -75,15 +78,12 @@ const TripDetails = () => {
   const [trip, setTrip] = useState(null);
   const [otherTrips, setOtherTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [galleryIndex, setGalleryIndex] = useState(0);
   const durationDays = parseDurationDays(trip);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const tripData = await getTripById(id);
-        const tripsData = await getTrips();
-
+        const [tripData, tripsData] = await Promise.all([getTripById(id), getTrips()]);
         setTrip(tripData);
         setOtherTrips(tripsData);
       } catch (error) {
@@ -110,7 +110,6 @@ const TripDetails = () => {
 
   const visibleDepartures = useMemo(() => {
     const upcoming = sortedDepartures.filter((departure) => toDateKey(departure.date) >= todayKey);
-
     return upcoming.length ? upcoming : sortedDepartures;
   }, [sortedDepartures, todayKey]);
 
@@ -122,48 +121,48 @@ const TripDetails = () => {
     return <div className="p-10 text-center text-red-500">Trek not found.</div>;
   }
 
-  const primaryBookDate = visibleDepartures.find(
-    (departure) => departure.totalSeats - departure.bookedSeats > 0
-  );
+  const primaryBookDate = visibleDepartures.find((departure) => getSeatsLeft(departure) > 0);
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div
-        className="h-[420px] bg-cover bg-center flex items-end"
+        className="h-[300px] sm:h-[360px] md:h-[420px] bg-cover bg-center flex items-end"
         style={{
           backgroundImage: `url(${API_BASE}/uploads/${trip.coverImage})`
         }}
       >
-        <div className="bg-black/60 w-full p-10 text-white">
-          <h1 className="text-4xl font-bold">{trip.title}</h1>
-          <p className="mt-2 text-lg">
+        <div className="bg-black/60 w-full p-4 sm:p-6 lg:p-10 text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">{trip.title}</h1>
+          <p className="mt-2 text-sm sm:text-base md:text-lg">
             {trip.location} | {trip.duration}
           </p>
         </div>
       </div>
 
-      <div className="sticky top-0 bg-white border-b shadow-sm z-50">
-        <div className="max-w-7xl mx-auto flex gap-10 px-10 py-4 text-sm font-semibold text-gray-700">
-          <a href="#overview" className="hover:text-green-600">
-            Overview
-          </a>
-          <a href="#gallery" className="hover:text-green-600">
-            Photo Gallery
-          </a>
-          <a href="#itinerary" className="hover:text-green-600">
-            Itinerary
-          </a>
-          <a href="#departures" className="hover:text-green-600">
-            Dates
-          </a>
-          <a href="#reviews" className="hover:text-green-600">
-            Reviews
-          </a>
+      <div className="sticky top-0 bg-white border-b shadow-sm z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-x-auto">
+          <div className="flex gap-6 sm:gap-10 text-sm font-semibold text-gray-700 min-w-max">
+            <a href="#overview" className="hover:text-green-600">
+              Overview
+            </a>
+            <a href="#gallery" className="hover:text-green-600">
+              Photo Gallery
+            </a>
+            <a href="#itinerary" className="hover:text-green-600">
+              Itinerary
+            </a>
+            <a href="#departures" className="hover:text-green-600">
+              Dates
+            </a>
+            <a href="#reviews" className="hover:text-green-600">
+              Reviews
+            </a>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-10 p-10">
-        <div className="md:col-span-2">
+      <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6 lg:gap-10 px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+        <div className="lg:col-span-2">
           <section id="overview" className="scroll-mt-24">
             <h2 className="text-2xl font-bold mb-4">Overview</h2>
 
@@ -175,7 +174,8 @@ const TripDetails = () => {
               {visibleDepartures.length ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {visibleDepartures.slice(0, 4).map((departure) => {
-                    const seatsLeft = departure.totalSeats - departure.bookedSeats;
+                    const seatsLeft = getSeatsLeft(departure);
+                    const totalSeats = Number(departure.totalSeats || 0);
                     const departureKey = toDateKey(departure.date);
                     const endDate = addDays(departure.date, durationDays - 1);
 
@@ -187,14 +187,14 @@ const TripDetails = () => {
                           navigate(`/booking/${trip._id}?date=${departureKey}&batch=${departure._id}`)
                         }
                         disabled={seatsLeft <= 0}
-                        className="text-left border rounded p-3 hover:border-green-500 disabled:opacity-50"
+                        className="trip-snapshot-card text-left border rounded p-3 hover:border-green-500 disabled:opacity-50"
                       >
                         <p className="font-semibold">{departure.batchLabel || "Standard Batch"}</p>
-                        <p className="text-sm text-gray-700 mt-1">
+                        <p className="text-sm trip-card-meta mt-1">
                           {formatDateRange(departure.date, endDate)}
                         </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {seatsLeft <= 0 ? "Sold Out" : `${seatsLeft} seats left`}
+                        <p className="text-sm trip-card-meta mt-1">
+                          {seatsLeft <= 0 ? "Sold Out" : `${seatsLeft} / ${totalSeats} seats left`}
                         </p>
                       </button>
                     );
@@ -209,41 +209,19 @@ const TripDetails = () => {
           <section id="gallery" className="scroll-mt-24 mt-10">
             <h2 className="text-2xl font-bold mb-6">Photo Gallery</h2>
 
-            {trip.gallery && trip.gallery.length > 0 && (
-              <div className="relative flex items-center">
-                <button
-                  onClick={() =>
-                    setGalleryIndex((prev) =>
-                      prev === 0 ? trip.gallery.length - 2 : prev - 1
-                    )
-                  }
-                  className="absolute left-0 z-10 bg-white shadow p-2 rounded-full"
-                >
-                  &lt;
-                </button>
-
-                <div className="flex gap-4 mx-10">
-                  {trip.gallery.slice(galleryIndex, galleryIndex + 2).map((img, index) => (
-                    <img
-                      key={index}
-                      src={`${API_BASE}/uploads/${img}`}
-                      alt="trek"
-                      className="w-64 h-44 object-cover rounded-lg shadow hover:scale-105 transition"
-                    />
-                  ))}
-                </div>
-
-                <button
-                  onClick={() =>
-                    setGalleryIndex((prev) =>
-                      prev + 2 >= trip.gallery.length ? 0 : prev + 1
-                    )
-                  }
-                  className="absolute right-0 z-10 bg-white shadow p-2 rounded-full"
-                >
-                  &gt;
-                </button>
+            {trip.gallery && trip.gallery.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {trip.gallery.map((img, index) => (
+                  <img
+                    key={`${img}-${index}`}
+                    src={`${API_BASE}/uploads/${img}`}
+                    alt={`${trip.title} ${index + 1}`}
+                    className="w-full h-56 object-cover rounded-lg shadow"
+                  />
+                ))}
               </div>
+            ) : (
+              <p className="text-sm text-gray-600">No gallery images available.</p>
             )}
           </section>
 
@@ -260,24 +238,25 @@ const TripDetails = () => {
           <section id="departures" className="scroll-mt-24 mt-12">
             <h2 className="text-2xl font-bold mb-6">Available Departures</h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {visibleDepartures.map((departure) => {
-                const seatsLeft = departure.totalSeats - departure.bookedSeats;
+                const seatsLeft = getSeatsLeft(departure);
+                const totalSeats = Number(departure.totalSeats || 0);
                 const endDate = addDays(departure.date, durationDays - 1);
 
                 return (
                   <div
                     key={departure._id}
-                    className={`p-4 rounded-lg border text-center ${
-                      seatsLeft === 0 ? "bg-red-100" : "bg-green-100"
+                    className={`trip-departure-card p-4 rounded-lg border text-center ${
+                      seatsLeft === 0 ? "is-sold" : "is-open"
                     }`}
                   >
                     <p className="font-semibold">{departure.batchLabel || "Standard Batch"}</p>
-
-                    <p className="text-sm mt-1">{formatDateRange(departure.date, endDate)}</p>
-
-                    <p className="text-sm mt-1">
-                      {seatsLeft === 0 ? "Sold Out" : `${seatsLeft} seats left`}
+                    <p className="text-sm mt-1 trip-card-meta">
+                      {formatDateRange(departure.date, endDate)}
+                    </p>
+                    <p className="text-sm mt-1 trip-card-meta">
+                      {seatsLeft === 0 ? "Sold Out" : `${seatsLeft} / ${totalSeats} seats left`}
                     </p>
 
                     <button
@@ -299,27 +278,24 @@ const TripDetails = () => {
 
           <section id="reviews" className="scroll-mt-24 mt-10">
             <h2 className="text-2xl font-bold mb-4">Reviews</h2>
-
             <p className="text-gray-600">No reviews yet.</p>
           </section>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg sticky top-24">
+          <div className="bg-white p-6 rounded-xl shadow-lg lg:sticky lg:top-24">
             <h2 className="text-3xl font-bold text-green-600">INR {trip.price}</h2>
-
             <p className="text-gray-500 mb-4">Admin Confirmation + Invoice by Email</p>
 
             <button
               type="button"
               onClick={() =>
                 navigate(
-                  `/booking/${trip._id}${
-                    primaryBookDate ? `?date=${toDateKey(primaryBookDate.date)}` : ""
-                  }`
+                  `/booking/${trip._id}${primaryBookDate ? `?date=${toDateKey(primaryBookDate.date)}` : ""}`
                 )
               }
-              className="w-full mt-2 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+              disabled={!visibleDepartures.length}
+              className="w-full mt-2 bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
             >
               Book This Trek
             </button>

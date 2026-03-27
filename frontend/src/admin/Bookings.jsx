@@ -42,7 +42,8 @@ const statusClass = {
 
 const paymentClass = {
   paid: "bg-sky-100 text-sky-700",
-  pending: "bg-orange-100 text-orange-700"
+  pending: "bg-orange-100 text-orange-700",
+  rejected: "bg-rose-100 text-rose-700"
 };
 
 const Bookings = () => {
@@ -124,7 +125,7 @@ const Bookings = () => {
   };
 
   const openInvoice = (bookingId) => {
-    window.open(`http://localhost:5000/api/bookings/${bookingId}/invoice`, "_blank");
+    window.open(`http://localhost:5000/api/bookings/${bookingId}/invoice.pdf`, "_blank");
   };
 
   const applySearch = () => {
@@ -145,7 +146,7 @@ const Bookings = () => {
 
   return (
     <AdminLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <h1 className="text-3xl font-bold mb-6">Bookings</h1>
 
         <div className="flex flex-wrap gap-2 mb-4">
@@ -194,7 +195,7 @@ const Bookings = () => {
           </button>
         </div>
 
-        <div className="bg-white p-6 shadow rounded overflow-x-auto">
+        <div className="bg-white p-4 sm:p-6 shadow rounded overflow-x-auto">
           {loading ? (
             <p>Loading bookings...</p>
           ) : bookings.length === 0 ? (
@@ -222,6 +223,20 @@ const Bookings = () => {
                       <p className="font-semibold">{booking.customerName}</p>
                       <p className="text-sm text-gray-600">{booking.customerEmail}</p>
                       <p className="text-sm text-gray-600">{booking.customerPhone}</p>
+                      {(booking.customerAge || booking.customerGender) && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Lead: {booking.customerAge || "-"} yrs, {booking.customerGender || "-"}
+                        </p>
+                      )}
+                      {Array.isArray(booking.members) && booking.members.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Members:{" "}
+                          {booking.members
+                            .map((member) => member?.name)
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                      )}
                     </td>
 
                     <td className="p-3">{booking.tripTitle || booking.trip?.title}</td>
@@ -245,6 +260,19 @@ const Bookings = () => {
                       >
                         {booking.paymentStatus || "pending"} via {booking.paymentMethod || "cash"}
                       </span>
+                      <p className="text-xs text-gray-600 mt-2">
+                        Ref: {booking.paymentReference || "N/A"}
+                      </p>
+                      {booking.paymentScreenshot && (
+                        <a
+                          href={`http://localhost:5000/uploads/${booking.paymentScreenshot}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-blue-700 underline"
+                        >
+                          View payment proof
+                        </a>
+                      )}
                     </td>
 
                     <td className="p-3 text-sm">{booking.invoiceNumber}</td>
@@ -260,7 +288,7 @@ const Bookings = () => {
                     </td>
 
                     <td className="p-3">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => openInvoice(booking._id)}
                           className="bg-gray-900 text-white px-3 py-1 rounded"
@@ -304,7 +332,7 @@ const Bookings = () => {
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between">
+        <div className="mt-5 flex flex-wrap gap-3 items-center justify-between">
           <p className="text-sm text-gray-600">
             Page {page} of {pages}
           </p>
