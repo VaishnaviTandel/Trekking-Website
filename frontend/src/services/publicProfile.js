@@ -1,4 +1,4 @@
-const API = "http://localhost:5000/api/admin/public-profile";
+const API = "https://southfriends.onrender.com/api/admin/public-profile";
 
 export const fetchPublicProfile = async () => {
   const response = await fetch(API);

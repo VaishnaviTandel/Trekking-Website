@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const ROOM_API = "http://localhost:5000/api/rooms";
-const ROOM_BOOKING_API = "http://localhost:5000/api/room-bookings";
+const ROOM_API = "https://southfriends.onrender.com/api/rooms";
+const ROOM_BOOKING_API = "https://southfriends.onrender.com/api/room-bookings";
 
 export const getRooms = async (params = {}) => {
   const response = await axios.get(ROOM_API, { params });

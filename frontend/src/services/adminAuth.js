@@ -1,4 +1,4 @@
-const API = "http://localhost:5000/api/admin";
+const API = "https://southfriends.onrender.com/api/admin";
 const TOKEN_KEY = "adminToken";
 const ADMIN_KEY = "adminProfile";
 

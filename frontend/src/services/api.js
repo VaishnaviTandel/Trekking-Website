@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://localhost:5000/api/trips";
+const API = "https://southfriends.onrender.com/api/trips";
 
 export const getTrips = async () => {
   const res = await axios.get(API);
