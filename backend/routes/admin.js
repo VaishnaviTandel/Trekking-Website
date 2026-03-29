@@ -210,7 +210,7 @@ router.post("/forgot-password", async (req, res) => {
     admin.passwordResetExpires = expiry;
     await admin.save();
 
-    const resetLink = `${process.env.CLIENT_URL || "http://localhost:3000"}/admin/reset-password?token=${token}&email=${encodeURIComponent(
+    const resetLink = `${process.env.CLIENT_URL || "https://southfriends.onrender.com/"}/admin/reset-password?token=${token}&email=${encodeURIComponent(
       email
     )}`;
 
