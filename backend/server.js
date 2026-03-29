@@ -10,6 +10,8 @@ const replyRoutes = require("./routes/reply");
 const departuresRoute = require("./routes/departures");
 const bookingRoutes = require("./routes/bookings");
 const adminRoutes = require("./routes/admin");
+const roomRoutes = require("./routes/rooms");
+const roomBookingRoutes = require("./routes/roomBookings");
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use("/api/contact",contactRoutes);
 app.use("/api/reply", replyRoutes);
 app.use("/api/trips", departuresRoute);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/room-bookings", roomBookingRoutes);
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/admin", adminRoutes);
 

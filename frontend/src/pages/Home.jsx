@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { getTrips } from "../services/api";
 import TrekCard from "../components/TrekCard";
+import RoomCard from "../components/RoomCard";
 import { Link } from "react-router-dom";
 import { fetchPublicProfile } from "../services/publicProfile";
+import { getRooms } from "../services/rooms";
 
 const typingLines = [
   "Explore Beautiful Treks...",
@@ -15,6 +17,7 @@ const FALLBACK_HERO =
 
 const Home = () => {
   const [trips, setTrips] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [scrollY, setScrollY] = useState(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -22,12 +25,18 @@ const Home = () => {
   const [heroImage, setHeroImage] = useState(FALLBACK_HERO);
 
   useEffect(() => {
-    const fetchTrips = async () => {
-      const data = await getTrips();
-      setTrips(data.slice(0, 6));
+    const fetchHomeData = async () => {
+      try {
+        const [tripsData, roomsData] = await Promise.all([getTrips(), getRooms({ active: true })]);
+        setTrips((Array.isArray(tripsData) ? tripsData : []).slice(0, 6));
+        setRooms((Array.isArray(roomsData) ? roomsData : []).slice(0, 6));
+      } catch (_error) {
+        setTrips([]);
+        setRooms([]);
+      }
     };
 
-    fetchTrips();
+    fetchHomeData();
   }, []);
 
   useEffect(() => {
@@ -177,6 +186,25 @@ const Home = () => {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        <div className="flex items-end justify-between gap-4 mb-8">
+          <h2 className="text-3xl font-bold">Available Rooms</h2>
+          <Link to="/rooms" className="text-green-700 font-semibold hover:underline">
+            View All Rooms
+          </Link>
+        </div>
+
+        {rooms.length === 0 ? (
+          <p className="text-center text-gray-600">Room inventory will be visible here once admin adds rooms.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {rooms.map((room) => (
+              <RoomCard key={room._id} room={room} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

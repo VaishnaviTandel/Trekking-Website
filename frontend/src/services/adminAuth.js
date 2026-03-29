@@ -105,3 +105,55 @@ export const updateAdminProfile = async (formData) => {
 
   return data;
 };
+
+export const requestAdminPasswordReset = async (payload) => {
+  const response = await fetch(`${API}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const responseClone = response.clone();
+  let data;
+  try {
+    data = await response.json();
+  } catch (_error) {
+    const text = await responseClone.text();
+    if (!response.ok) {
+      throw new Error(text || "Request failed.");
+    }
+    return { message: text || "Request sent." };
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Request failed.");
+  }
+
+  return data;
+};
+
+export const resetAdminPassword = async (payload) => {
+  const response = await fetch(`${API}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const responseClone = response.clone();
+  let data;
+  try {
+    data = await response.json();
+  } catch (_error) {
+    const text = await responseClone.text();
+    if (!response.ok) {
+      throw new Error(text || "Reset failed.");
+    }
+    return { message: text || "Password reset succeeded." };
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Reset failed.");
+  }
+
+  return data;
+};

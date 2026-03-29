@@ -96,6 +96,14 @@ const adminSchema = new mongoose.Schema(
     passwordHash: {
       type: String,
       required: true
+    },
+    passwordResetToken: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    passwordResetExpires: {
+      type: Date
     }
   },
   { timestamps: true }

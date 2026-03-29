@@ -16,17 +16,6 @@ const formatDate = (value) => {
   });
 };
 
-const formatDateRange = (startDate, endDate) => {
-  const start = formatDate(startDate);
-  const end = formatDate(endDate);
-
-  if (start === end) {
-    return start;
-  }
-
-  return `${start} to ${end}`;
-};
-
 const formatPrice = (amount) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -46,7 +35,7 @@ const paymentClass = {
   rejected: "bg-rose-100 text-rose-700"
 };
 
-const Bookings = () => {
+export default function RoomBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState("");
@@ -73,10 +62,7 @@ const Bookings = () => {
         params.set("q", searchQuery);
       }
 
-      const response = await axios.get(
-        `http://localhost:5000/api/bookings?${params.toString()}`
-      );
-
+      const response = await axios.get(`http://localhost:5000/api/room-bookings?${params.toString()}`);
       setBookings(response.data?.items || []);
       setPages(response.data?.pages || 1);
     } finally {
@@ -92,13 +78,7 @@ const Bookings = () => {
     setUpdatingId(bookingId);
 
     try {
-      await axios.patch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
-        {
-          status
-        }
-      );
-
+      await axios.patch(`http://localhost:5000/api/room-bookings/${bookingId}/status`, { status });
       await fetchBookings();
     } catch (error) {
       alert(error.response?.data?.message || "Status update failed");
@@ -111,11 +91,9 @@ const Bookings = () => {
     setUpdatingId(bookingId);
 
     try {
-      await axios.patch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
-        { paymentStatus }
-      );
-
+      await axios.patch(`http://localhost:5000/api/room-bookings/${bookingId}/status`, {
+        paymentStatus
+      });
       await fetchBookings();
     } catch (error) {
       alert(error.response?.data?.message || "Payment update failed");
@@ -125,25 +103,21 @@ const Bookings = () => {
   };
 
   const deleteBooking = async (bookingId) => {
-    if (!window.confirm("Are you sure you want to delete this booking?")) {
+    if (!window.confirm("Are you sure you want to delete this room booking?")) {
       return;
     }
 
     setUpdatingId(bookingId);
 
     try {
-      await axios.delete(`http://localhost:5000/api/bookings/${bookingId}`);
+      await axios.delete(`http://localhost:5000/api/room-bookings/${bookingId}`);
       await fetchBookings();
-      alert("Booking deleted successfully");
+      alert("Room booking deleted successfully");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to delete booking");
+      alert(error.response?.data?.message || "Failed to delete room booking");
     } finally {
       setUpdatingId("");
     }
-  };
-
-  const openInvoice = (bookingId) => {
-    window.open(`http://localhost:5000/api/bookings/${bookingId}/invoice.pdf`, "_blank");
   };
 
   const applySearch = () => {
@@ -165,7 +139,7 @@ const Bookings = () => {
   return (
     <AdminLayout>
       <div className="p-4 sm:p-6 lg:p-8">
-        <h1 className="text-3xl font-bold mb-6">Bookings</h1>
+        <h1 className="text-3xl font-bold mb-6">Room Bookings</h1>
 
         <div className="flex flex-wrap gap-2 mb-4">
           {["all", "pending", "confirmed", "cancelled"].map((status) => (
@@ -186,29 +160,21 @@ const Bookings = () => {
         <div className="bg-white p-4 rounded shadow mb-5 flex flex-wrap gap-3 items-center">
           <input
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
+            onChange={(event) => setSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
                 applySearch();
               }
             }}
-            placeholder="Search by customer, email, phone, trip, invoice"
+            placeholder="Search by customer, room, type, invoice, phone"
             className="flex-1 min-w-[260px] border rounded px-3 py-2"
           />
 
-          <button
-            type="button"
-            onClick={applySearch}
-            className="bg-gray-900 text-white px-4 py-2 rounded"
-          >
+          <button type="button" onClick={applySearch} className="bg-gray-900 text-white px-4 py-2 rounded">
             Search
           </button>
 
-          <button
-            type="button"
-            onClick={resetSearch}
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded border"
-          >
+          <button type="button" onClick={resetSearch} className="bg-gray-100 text-gray-700 px-4 py-2 rounded border">
             Reset
           </button>
         </div>
@@ -217,15 +183,16 @@ const Bookings = () => {
           {loading ? (
             <p>Loading bookings...</p>
           ) : bookings.length === 0 ? (
-            <p className="text-gray-600">No bookings yet.</p>
+            <p className="text-gray-600">No room bookings yet.</p>
           ) : (
-            <table className="w-full min-w-[1100px]">
+            <table className="w-full min-w-[1200px]">
               <thead className="border-b bg-gray-50">
                 <tr>
                   <th className="text-left p-3">Customer</th>
-                  <th className="text-left p-3">Trip</th>
-                  <th className="text-left p-3">Batch + Dates</th>
-                  <th className="text-left p-3">People</th>
+                  <th className="text-left p-3">Room</th>
+                  <th className="text-left p-3">Stay</th>
+                  <th className="text-left p-3">Guests</th>
+                  <th className="text-left p-3">Guest Split</th>
                   <th className="text-left p-3">Amount</th>
                   <th className="text-left p-3">Payment</th>
                   <th className="text-left p-3">Invoice</th>
@@ -241,34 +208,41 @@ const Bookings = () => {
                       <p className="font-semibold">{booking.customerName}</p>
                       <p className="text-sm text-gray-600">{booking.customerEmail}</p>
                       <p className="text-sm text-gray-600">{booking.customerPhone}</p>
-                      {(booking.customerAge || booking.customerGender) && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Lead: {booking.customerAge || "-"} yrs, {booking.customerGender || "-"}
-                        </p>
-                      )}
-                      {Array.isArray(booking.members) && booking.members.length > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Members:{" "}
-                          {booking.members
-                            .map((member) => member?.name)
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      )}
                     </td>
 
-                    <td className="p-3">{booking.tripTitle || booking.trip?.title}</td>
-
                     <td className="p-3">
-                      <p className="font-medium">{booking.selectedBatch || "Standard Batch"}</p>
-                      <p className="text-sm text-gray-600">
-                        {formatDateRange(booking.departureDate, booking.endDate)}
+                      <p className="font-medium">{booking.roomName}</p>
+                      <p className="text-sm text-gray-600">{booking.roomLocation}</p>
+                      <p className="text-sm text-gray-600">{booking.roomTypeLabel}</p>
+                      <p className="text-xs text-gray-500">
+                        {booking.shareType?.toUpperCase()} |{" "}
+                        {booking.acType === "non_ac" ? "Non-AC" : "AC"}
                       </p>
                     </td>
 
-                    <td className="p-3">{booking.participants}</td>
+                    <td className="p-3">
+                      <p className="text-sm">
+                        {formatDate(booking.checkIn)} to {formatDate(booking.checkOut)}
+                      </p>
+                      <p className="text-xs text-gray-500">{booking.nights} night(s)</p>
+                      <p className="text-xs text-gray-500">{booking.roomsCount} room(s)</p>
+                    </td>
 
-                    <td className="p-3">{formatPrice(booking.totalAmount)}</td>
+                    <td className="p-3">{booking.guestsCount}</td>
+                    <td className="p-3 text-xs text-gray-600">
+                      <p>Adults: {booking.adultsCount ?? "-"}</p>
+                      <p>Children 10+: {booking.childrenAbove10Count ?? 0}</p>
+                      <p>Children &lt;10: {booking.childrenBelow10Count ?? 0}</p>
+                    </td>
+
+                    <td className="p-3">
+                      <p>{formatPrice(booking.totalAmount)}</p>
+                      {Number(booking.concessionAmount || 0) > 0 && (
+                        <p className="text-xs text-green-700 mt-1">
+                          Concession: -{formatPrice(booking.concessionAmount)}
+                        </p>
+                      )}
+                    </td>
 
                     <td className="p-3">
                       <span
@@ -276,7 +250,7 @@ const Bookings = () => {
                           paymentClass[booking.paymentStatus] || "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {booking.paymentStatus || "pending"} via {booking.paymentMethod || "cash"}
+                        {booking.paymentStatus || "pending"} via {booking.paymentMethod || "upi_qr"}
                       </span>
                       <p className="text-xs text-gray-600 mt-2">
                         Ref: {booking.paymentReference || "N/A"}
@@ -308,13 +282,6 @@ const Bookings = () => {
                     <td className="p-3">
                       <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => openInvoice(booking._id)}
-                          className="bg-gray-900 text-white px-3 py-1 rounded"
-                        >
-                          Invoice
-                        </button>
-
-                        <button
                           onClick={() => updatePaymentStatus(booking._id, "paid")}
                           disabled={updatingId === booking._id || booking.paymentStatus === "paid"}
                           className="bg-sky-600 text-white px-3 py-1 rounded disabled:bg-gray-400"
@@ -324,9 +291,7 @@ const Bookings = () => {
 
                         <button
                           onClick={() => updateStatus(booking._id, "confirmed")}
-                          disabled={
-                            updatingId === booking._id || booking.status === "confirmed"
-                          }
+                          disabled={updatingId === booking._id || booking.status === "confirmed"}
                           className="bg-green-600 text-white px-3 py-1 rounded disabled:bg-gray-400"
                         >
                           Confirm
@@ -334,9 +299,7 @@ const Bookings = () => {
 
                         <button
                           onClick={() => updateStatus(booking._id, "cancelled")}
-                          disabled={
-                            updatingId === booking._id || booking.status === "cancelled"
-                          }
+                          disabled={updatingId === booking._id || booking.status === "cancelled"}
                           className="bg-red-500 text-white px-3 py-1 rounded disabled:bg-gray-400"
                         >
                           Cancel
@@ -384,6 +347,4 @@ const Bookings = () => {
       </div>
     </AdminLayout>
   );
-};
-
-export default Bookings;
+}

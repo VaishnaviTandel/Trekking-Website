@@ -507,6 +507,34 @@ const sendConfirmationEmail = async (booking) => {
     html,
     attachments
   });
+
+  try {
+    await sendAdminNotificationEmail(`Booking Confirmed - ${booking.tripTitle}`, [
+      "A trek booking has been confirmed.",
+      "",
+      `Customer: ${booking.customerName} <${booking.customerEmail}>`,
+      `Trip: ${booking.tripTitle}`,
+      `Departure: ${formatDate(booking.departureDate)}`,
+      `Participants: ${booking.participants}`,
+      `Amount: ${formatPrice(booking.totalAmount)}`,
+      `Invoice Number: ${booking.invoiceNumber || "-"}`,
+      "",
+      `Admin panel: ${process.env.CLIENT_URL || "http://localhost:3000"}/admin`
+    ].join("\n"));
+  } catch (emailError) {
+    console.log("Admin booking confirmation notification failed:", emailError.message);
+  }
+};
+
+const sendAdminNotificationEmail = async (subject, text) => {
+  const admin = await Admin.findOne().sort({ createdAt: -1 });
+  const recipient = admin?.supportEmail || admin?.email || process.env.EMAIL_USER;
+
+  if (!recipient) {
+    return;
+  }
+
+  await sendEmail(recipient, subject, text);
 };
 
 const sendBookingReceivedEmail = async (booking) => {
@@ -530,6 +558,64 @@ const sendBookingReceivedEmail = async (booking) => {
   ].join("\n");
 
   await sendEmail(booking.customerEmail, subject, text);
+
+  try {
+    await sendAdminNotificationEmail(`New Booking Received - ${booking.tripTitle}`, [
+      "A new trek booking has been received.",
+      "",
+      `Customer: ${booking.customerName} <${booking.customerEmail}>`,
+      `Phone: ${booking.customerPhone}`,
+      `Trip: ${booking.tripTitle}`,
+      `Departure: ${formatDate(booking.departureDate)}`,
+      `Participants: ${booking.participants}`,
+      `Amount: ${formatPrice(booking.totalAmount)}`,
+      `Payment Reference: ${booking.paymentReference || "-"}`,
+      `Status: ${booking.status || "pending"}`,
+      "",
+      `Admin panel: ${process.env.CLIENT_URL || "http://localhost:3000"}/admin`
+    ].join("\n"));
+  } catch (emailError) {
+    console.log("Admin booking received notification failed:", emailError.message);
+  }
+};
+
+const sendBookingCancelledEmail = async (booking) => {
+  if (!booking.customerEmail) {
+    return;
+  }
+
+  const subject = `Booking Cancelled - ${booking.tripTitle}`;
+  const text = [
+    `Hi ${booking.customerName},`,
+    "",
+    "Your trek booking has been cancelled.",
+    `Trip: ${booking.tripTitle}`,
+    `Departure: ${formatDate(booking.departureDate)}`,
+    `Participants: ${booking.participants}`,
+    `Amount: ${formatPrice(booking.totalAmount)}`,
+    `Invoice Number: ${booking.invoiceNumber || "-"}`,
+    "",
+    "If you have questions, please contact us."
+  ].join("\n");
+
+  await sendEmail(booking.customerEmail, subject, text);
+
+  try {
+    await sendAdminNotificationEmail(`Booking Cancelled - ${booking.tripTitle}`, [
+      "A trek booking has been cancelled.",
+      "",
+      `Customer: ${booking.customerName} <${booking.customerEmail}>`,
+      `Trip: ${booking.tripTitle}`,
+      `Departure: ${formatDate(booking.departureDate)}`,
+      `Participants: ${booking.participants}`,
+      `Amount: ${formatPrice(booking.totalAmount)}`,
+      `Invoice Number: ${booking.invoiceNumber || "-"}`,
+      "",
+      `Admin panel: ${process.env.CLIENT_URL || "http://localhost:3000"}/admin`
+    ].join("\n"));
+  } catch (emailError) {
+    console.log("Admin booking cancellation notification failed:", emailError.message);
+  }
 };
 
 const createBookingHandler = async (req, res) => {
@@ -823,6 +909,14 @@ router.patch("/:id/status", async (req, res) => {
       }
     }
 
+    if (previousStatus !== "cancelled" && booking.status === "cancelled") {
+      try {
+        await sendBookingCancelledEmail(booking);
+      } catch (emailError) {
+        console.log("Cancellation email failed:", emailError.message);
+      }
+    }
+
     return res.json({
       message: "Booking updated.",
       booking: mapBooking(booking)
@@ -869,6 +963,18 @@ router.get("/:id/invoice", async (req, res) => {
     return res.send(buildInvoiceHtml(mapBooking(booking), branding));
   } catch (error) {
     return res.status(500).send("Failed to generate invoice.");
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const booking = await Booking.findByIdAndDelete(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+    res.json({ message: "Booking deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete booking" });
   }
 });
 

@@ -61,6 +61,12 @@ const AdminLogin = () => {
           {loading ? "Logging in..." : "Login"}
         </button>
 
+        <p className="text-sm text-gray-600 mt-3 text-center">
+          <Link to="/admin/forgot-password" className="text-blue-700 font-semibold">
+            Forgot password?
+          </Link>
+        </p>
+
         <p className="text-sm text-gray-600 mt-4 text-center">
           No admin account?{" "}
           <Link to="/admin/register" className="text-green-700 font-semibold">

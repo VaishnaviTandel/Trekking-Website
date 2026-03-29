@@ -1,6 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getTripById, getTrips } from "../services/api";
+import { getRooms } from "../services/rooms";
 
 const API_BASE = "http://localhost:5000";
 
@@ -71,12 +72,26 @@ const formatDateRange = (startDate, endDate) => {
 const getSeatsLeft = (departure) =>
   Math.max(0, Number(departure?.totalSeats || 0) - Number(departure?.bookedSeats || 0));
 
+const getImageUrl = (imagePath = "") => {
+  if (!imagePath) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(imagePath)) {
+    return imagePath;
+  }
+
+  return `${API_BASE}/uploads/${imagePath}`;
+};
+
 const TripDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [trip, setTrip] = useState(null);
   const [otherTrips, setOtherTrips] = useState([]);
+  const [nearbyRooms, setNearbyRooms] = useState([]);
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const durationDays = parseDurationDays(trip);
 
@@ -86,6 +101,12 @@ const TripDetails = () => {
         const [tripData, tripsData] = await Promise.all([getTripById(id), getTrips()]);
         setTrip(tripData);
         setOtherTrips(tripsData);
+
+        const roomData = await getRooms({
+          active: true,
+          location: tripData?.location || ""
+        });
+        setNearbyRooms((Array.isArray(roomData) ? roomData : []).slice(0, 4));
       } catch (error) {
         console.error("Error loading trip:", error);
       } finally {
@@ -94,6 +115,10 @@ const TripDetails = () => {
     };
 
     fetchData();
+  }, [id]);
+
+  useEffect(() => {
+    setActiveGalleryIndex(0);
   }, [id]);
 
   const sortedDepartures = useMemo(() => {
@@ -112,6 +137,16 @@ const TripDetails = () => {
     const upcoming = sortedDepartures.filter((departure) => toDateKey(departure.date) >= todayKey);
     return upcoming.length ? upcoming : sortedDepartures;
   }, [sortedDepartures, todayKey]);
+
+  const galleryImages = useMemo(() => {
+    const gallery = Array.isArray(trip?.gallery) ? trip.gallery.filter(Boolean) : [];
+
+    if (gallery.length > 0) {
+      return gallery;
+    }
+
+    return trip?.coverImage ? [trip.coverImage] : [];
+  }, [trip]);
 
   if (loading) {
     return <div className="p-10 text-center text-lg font-semibold">Loading trek details...</div>;
@@ -139,7 +174,7 @@ const TripDetails = () => {
         </div>
       </div>
 
-      <div className="sticky top-0 bg-white border-b shadow-sm z-40">
+      <div className="sticky top-0 bg-white border-b shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 overflow-x-auto">
           <div className="flex gap-6 sm:gap-10 text-sm font-semibold text-gray-700 min-w-max">
             <a href="#overview" className="hover:text-green-600">
@@ -153,9 +188,6 @@ const TripDetails = () => {
             </a>
             <a href="#departures" className="hover:text-green-600">
               Dates
-            </a>
-            <a href="#reviews" className="hover:text-green-600">
-              Reviews
             </a>
           </div>
         </div>
@@ -209,16 +241,67 @@ const TripDetails = () => {
           <section id="gallery" className="scroll-mt-24 mt-10">
             <h2 className="text-2xl font-bold mb-6">Photo Gallery</h2>
 
-            {trip.gallery && trip.gallery.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {trip.gallery.map((img, index) => (
+            {galleryImages.length > 0 ? (
+              <div className="bg-white border rounded-xl p-4">
+                <div className="relative max-w-2xl">
                   <img
-                    key={`${img}-${index}`}
-                    src={`${API_BASE}/uploads/${img}`}
-                    alt={`${trip.title} ${index + 1}`}
-                    className="w-full h-56 object-cover rounded-lg shadow"
+                    src={getImageUrl(galleryImages[activeGalleryIndex])}
+                    alt={`${trip.title} ${activeGalleryIndex + 1}`}
+                    className="w-full h-48 sm:h-52 md:h-56 object-contain bg-slate-100 rounded-lg shadow-sm"
                   />
-                ))}
+
+                  {galleryImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveGalleryIndex((current) =>
+                            current === 0 ? galleryImages.length - 1 : current - 1
+                          )
+                        }
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white text-lg hover:bg-black/80"
+                        aria-label="Previous photo"
+                      >
+                        {"<"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveGalleryIndex((current) =>
+                            current === galleryImages.length - 1 ? 0 : current + 1
+                          )
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white text-lg hover:bg-black/80"
+                        aria-label="Next photo"
+                      >
+                        {">"}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {galleryImages.length > 1 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {galleryImages.map((img, index) => (
+                      <button
+                        key={`${img}-${index}`}
+                        type="button"
+                        onClick={() => setActiveGalleryIndex(index)}
+                        className={`shrink-0 rounded-md overflow-hidden border ${
+                          index === activeGalleryIndex ? "border-green-500" : "border-gray-200"
+                        }`}
+                        aria-label={`Show photo ${index + 1}`}
+                      >
+                        <img
+                          src={getImageUrl(img)}
+                          alt={`${trip.title} thumbnail ${index + 1}`}
+                          className="w-16 h-12 object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-gray-600">No gallery images available.</p>
@@ -275,11 +358,6 @@ const TripDetails = () => {
               })}
             </div>
           </section>
-
-          <section id="reviews" className="scroll-mt-24 mt-10">
-            <h2 className="text-2xl font-bold mb-4">Reviews</h2>
-            <p className="text-gray-600">No reviews yet.</p>
-          </section>
         </div>
 
         <div className="space-y-6">
@@ -325,6 +403,39 @@ const TripDetails = () => {
                   </div>
                 </Link>
               ))}
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow">
+            <h3 className="text-lg font-bold mb-4">Nearby Stay Options</h3>
+
+            {nearbyRooms.length === 0 ? (
+              <p className="text-sm text-gray-600">No nearby rooms added yet.</p>
+            ) : (
+              nearbyRooms.map((room) => (
+                <Link
+                  to={`/room/${room._id}`}
+                  key={room._id}
+                  className="flex items-center gap-3 mb-4 hover:bg-gray-100 p-2 rounded transition"
+                >
+                  <img
+                    src={
+                      room.coverImage
+                        ? /^https?:\/\//i.test(room.coverImage)
+                          ? room.coverImage
+                          : `${API_BASE}/uploads/${room.coverImage}`
+                        : "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=640&q=80"
+                    }
+                    alt={room.name}
+                    className="w-16 h-12 object-cover rounded"
+                  />
+
+                  <div>
+                    <p className="text-sm font-semibold">{room.name}</p>
+                    <p className="text-xs text-gray-500">Starts from INR {room.startingPrice}</p>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

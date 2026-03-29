@@ -74,6 +74,7 @@ const Navbar = ({ theme = "light", onToggleTheme }) => {
           <div className="hidden md:flex gap-6 items-center">
             <Link to="/">Home</Link>
             <Link to="/trips">Treks</Link>
+            <Link to="/rooms">Rooms</Link>
             <Link to="/contact">Contact Us</Link>
             <button
               type="button"
@@ -100,6 +101,9 @@ const Navbar = ({ theme = "light", onToggleTheme }) => {
             </Link>
             <Link to="/trips" className="block">
               Treks
+            </Link>
+            <Link to="/rooms" className="block">
+              Rooms
             </Link>
             <Link to="/contact" className="block">
               Contact Us

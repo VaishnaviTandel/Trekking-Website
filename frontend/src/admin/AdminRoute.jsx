@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { fetchAdminMe, setAdminSession } from "../services/adminAuth";
+import { clearAdminSession, fetchAdminMe, setAdminSession } from "../services/adminAuth";
 
 export default function AdminRoute({ children }) {
   const location = useLocation();
@@ -22,6 +22,7 @@ export default function AdminRoute({ children }) {
         setAllowed(true);
       } catch (_error) {
         if (mounted) {
+          clearAdminSession();
           setAllowed(false);
         }
       } finally {

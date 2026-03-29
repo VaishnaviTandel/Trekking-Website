@@ -1,5 +1,10 @@
 const express = require("express");
+const crypto = require("crypto");
 const Admin = require("../models/Admin");
+const Booking = require("../models/Booking");
+const RoomBooking = require("../models/RoomBooking");
+const Contact = require("../models/Contact");
+const sendEmail = require("../utils/emailService");
 const upload = require("../uploads/upload");
 const {
   createPasswordRecord,
@@ -184,6 +189,90 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const admin = await Admin.findOne({ email });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    const token = crypto.randomBytes(24).toString("hex");
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    admin.passwordResetToken = token;
+    admin.passwordResetExpires = expiry;
+    await admin.save();
+
+    const resetLink = `${process.env.CLIENT_URL || "http://localhost:3000"}/admin/reset-password?token=${token}&email=${encodeURIComponent(
+      email
+    )}`;
+
+    const subject = "Reset your admin password";
+    const text = [
+      `Hi ${admin.fullName || "Admin"},`,
+      "",
+      "We received a request to reset your admin password.",
+      "",
+      `Click here to reset: ${resetLink}`,
+      "",
+      "If you did not request a password reset, please ignore this email.",
+      "",
+      "This link expires in 1 hour."
+    ].join("\n");
+
+    await sendEmail(email, subject, text);
+
+    return res.json({ message: "Password reset instructions sent to your email." });
+  } catch (_error) {
+    return res.status(500).json({ message: "Failed to initiate password reset." });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const token = String(req.body.token || "").trim();
+    const password = String(req.body.password || "");
+
+    if (!email || !token || !password) {
+      return res.status(400).json({ message: "Email, token, and new password are required." });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
+    const admin = await Admin.findOne({ email, passwordResetToken: token, passwordResetExpires: { $gt: new Date() } });
+
+    if (!admin) {
+      return res.status(400).json({ message: "Invalid or expired reset token." });
+    }
+
+    const { salt, hash } = createPasswordRecord(password);
+    admin.passwordSalt = salt;
+    admin.passwordHash = hash;
+    admin.passwordResetToken = "";
+    admin.passwordResetExpires = null;
+
+    await admin.save();
+
+    return res.json({ message: "Password reset successful. You can now log in." });
+  } catch (_error) {
+    return res.status(500).json({ message: "Failed to reset password." });
+  }
+});
+
+router.get("/ping", (_req, res) => {
+  return res.json({ message: "admin route works" });
+});
+
 router.get("/me", async (req, res) => {
   try {
     const admin = await getAuthenticatedAdmin(req);
@@ -342,6 +431,19 @@ router.get("/public-profile", async (_req, res) => {
     });
   } catch (_error) {
     return res.status(500).json({ message: "Failed to load public profile." });
+  }
+});
+
+router.delete("/clear-data", async (req, res) => {
+  try {
+    await Promise.all([
+      Booking.deleteMany({}),
+      RoomBooking.deleteMany({}),
+      Contact.deleteMany({})
+    ]);
+    res.json({ message: "All data cleared successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to clear data" });
   }
 });
 
