@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getTripById, getTrips } from "../services/api";
 import { getRooms } from "../services/rooms";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://southfriends.onrender.com";
 
 const toDateKey = (value) => {
   const date = new Date(value);

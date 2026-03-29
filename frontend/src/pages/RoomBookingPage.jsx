@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { createRoomBooking, getRoomAvailability, getRoomById } from "../services/rooms";
 
-const API = "http://localhost:5000";
+const API = "https://southfriends.onrender.com";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^[0-9]{10,15}$/;

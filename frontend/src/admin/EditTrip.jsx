@@ -43,7 +43,7 @@ export default function EditTrip() {
 
   useEffect(() => {
     const fetchTrip = async () => {
-      const res = await axios.get(`http://localhost:5000/api/trips/${id}`);
+      const res = await axios.get(`https://southfriends.onrender.com/api/trips/${id}`);
       const data = res.data;
 
       setTrip({
@@ -143,7 +143,7 @@ export default function EditTrip() {
       formData.append("gallery", img);
     });
 
-    await axios.put(`http://localhost:5000/api/trips/${id}`, formData);
+    await axios.put(`https://southfriends.onrender.com/api/trips/${id}`, formData);
 
     alert("Trip Updated Successfully");
 

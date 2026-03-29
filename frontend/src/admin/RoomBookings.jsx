@@ -62,7 +62,7 @@ export default function RoomBookings() {
         params.set("q", searchQuery);
       }
 
-      const response = await axios.get(`http://localhost:5000/api/room-bookings?${params.toString()}`);
+      const response = await axios.get(`https://southfriends.onrender.com/api/room-bookings?${params.toString()}`);
       setBookings(response.data?.items || []);
       setPages(response.data?.pages || 1);
     } finally {
@@ -78,7 +78,7 @@ export default function RoomBookings() {
     setUpdatingId(bookingId);
 
     try {
-      await axios.patch(`http://localhost:5000/api/room-bookings/${bookingId}/status`, { status });
+      await axios.patch(`https://southfriends.onrender.com/api/room-bookings/${bookingId}/status`, { status });
       await fetchBookings();
     } catch (error) {
       alert(error.response?.data?.message || "Status update failed");
@@ -91,7 +91,7 @@ export default function RoomBookings() {
     setUpdatingId(bookingId);
 
     try {
-      await axios.patch(`http://localhost:5000/api/room-bookings/${bookingId}/status`, {
+      await axios.patch(`https://southfriends.onrender.com/api/room-bookings/${bookingId}/status`, {
         paymentStatus
       });
       await fetchBookings();
@@ -110,7 +110,7 @@ export default function RoomBookings() {
     setUpdatingId(bookingId);
 
     try {
-      await axios.delete(`http://localhost:5000/api/room-bookings/${bookingId}`);
+      await axios.delete(`https://southfriends.onrender.com/api/room-bookings/${bookingId}`);
       await fetchBookings();
       alert("Room booking deleted successfully");
     } catch (error) {
@@ -257,7 +257,7 @@ export default function RoomBookings() {
                       </p>
                       {booking.paymentScreenshot && (
                         <a
-                          href={`http://localhost:5000/uploads/${booking.paymentScreenshot}`}
+                          href={`https://southfriends.onrender.com/uploads/${booking.paymentScreenshot}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-blue-700 underline"

@@ -89,7 +89,7 @@ export default function AddTrip() {
       formData.append("gallery", img);
     });
 
-    await axios.post("http://localhost:5000/api/trips", formData);
+    await axios.post("https://southfriends.onrender.com/api/trips", formData);
 
     alert("Trip Added Successfully");
 

@@ -32,15 +32,22 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
+        console.log('Fetching summary...');
         const [trekSummary, roomSummary] = await Promise.all([
-          axios.get("http://localhost:5000/api/bookings/summary"),
-          axios.get("http://localhost:5000/api/room-bookings/summary")
+          axios.get("https://southfriends.onrender.com/api/bookings/summary"),
+          axios.get("https://southfriends.onrender.com/api/room-bookings/summary")
         ]);
-        setSummary({
+        console.log('Trek summary:', trekSummary.data);
+        console.log('Room summary:', roomSummary.data);
+        const newSummary = {
           ...initialSummary,
           ...(trekSummary.data || {}),
           ...(roomSummary.data || {})
-        });
+        };
+        console.log('New summary:', newSummary);
+        setSummary(newSummary);
+      } catch (error) {
+        console.error('Error fetching summary:', error);
       } finally {
         setLoading(false);
       }
@@ -56,7 +63,7 @@ export default function AdminDashboard() {
 
     setClearing(true);
     try {
-      await axios.delete("http://localhost:5000/api/admin/clear-data");
+      await axios.delete("https://southfriends.onrender.com/api/admin/clear-data");
       alert("All data cleared successfully");
       // Refresh summary
       window.location.reload();
@@ -81,6 +88,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
+        console.log('Current summary state:', summary);
         {loading ? (
           <div className="bg-white p-6 rounded shadow">Loading dashboard...</div>
         ) : (

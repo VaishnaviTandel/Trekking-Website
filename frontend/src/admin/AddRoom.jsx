@@ -183,7 +183,7 @@ export default function AddRoom() {
         });
       });
 
-      await axios.post("http://localhost:5000/api/rooms", payload);
+      await axios.post("https://southfriends.onrender.com/api/rooms", payload);
       alert("Room added successfully.");
 
       setRoom(emptyRoom);

@@ -62,7 +62,7 @@ const Home = () => {
           return;
         }
 
-        setHeroImage(`http://localhost:5000/uploads/${image}`);
+        setHeroImage(`https://southfriends.onrender.com/uploads/${image}`);
       } catch (_error) {
         if (mounted) {
           setHeroImage(FALLBACK_HERO);

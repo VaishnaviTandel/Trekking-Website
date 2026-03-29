@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "./AdminLayout";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://southfriends.onrender.com";
 
 const formatPrice = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -32,7 +32,7 @@ export default function ManageRooms() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/rooms");
+        const response = await axios.get("https://southfriends.onrender.com/api/rooms");
         setRooms(Array.isArray(response.data) ? response.data : []);
       } catch (_error) {
         setRooms([]);
@@ -50,7 +50,7 @@ export default function ManageRooms() {
     }
 
     try {
-      await axios.delete(`http://localhost:5000/api/rooms/${id}`);
+      await axios.delete(`https://southfriends.onrender.com/api/rooms/${id}`);
       setRooms((current) => current.filter((room) => room._id !== id));
     } catch (error) {
       alert(error?.response?.data?.message || "Failed to delete room.");

@@ -9,14 +9,14 @@ export default function ContactMessages() {
   const [selectedEmail, setSelectedEmail] = useState(null);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/contact").then((res) => {
+    axios.get("https://southfriends.onrender.com/api/contact").then((res) => {
       setMessages(res.data);
     });
   }, []);
 
 
   const sendReply = async () => {
-    await axios.post("http://localhost:5000/api/reply", {
+    await axios.post("https://southfriends.onrender.com/api/reply", {
       email: selectedEmail,
       message: replyText
     });
@@ -29,7 +29,7 @@ export default function ContactMessages() {
   };
 
   const deleteMessage = async (id) => {
-    await axios.delete(`http://localhost:5000/api/contact/${id}`);
+    await axios.delete(`https://southfriends.onrender.com/api/contact/${id}`);
     setMessages((current) => current.filter((message) => message._id !== id));
   };
 

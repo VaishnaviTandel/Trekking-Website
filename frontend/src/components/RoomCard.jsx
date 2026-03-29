@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://southfriends.onrender.com";
 
 const formatPrice = (value) =>
   new Intl.NumberFormat("en-IN", {

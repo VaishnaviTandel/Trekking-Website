@@ -74,7 +74,7 @@ const Bookings = () => {
       }
 
       const response = await axios.get(
-        `http://localhost:5000/api/bookings?${params.toString()}`
+        `https://southfriends.onrender.com/api/bookings?${params.toString()}`
       );
 
       setBookings(response.data?.items || []);
@@ -93,7 +93,7 @@ const Bookings = () => {
 
     try {
       await axios.patch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
+        `https://southfriends.onrender.com/api/bookings/${bookingId}/status`,
         {
           status
         }
@@ -112,7 +112,7 @@ const Bookings = () => {
 
     try {
       await axios.patch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
+        `https://southfriends.onrender.com/api/bookings/${bookingId}/status`,
         { paymentStatus }
       );
 
@@ -132,7 +132,7 @@ const Bookings = () => {
     setUpdatingId(bookingId);
 
     try {
-      await axios.delete(`http://localhost:5000/api/bookings/${bookingId}`);
+      await axios.delete(`https://southfriends.onrender.com/api/bookings/${bookingId}`);
       await fetchBookings();
       alert("Booking deleted successfully");
     } catch (error) {
@@ -143,7 +143,7 @@ const Bookings = () => {
   };
 
   const openInvoice = (bookingId) => {
-    window.open(`http://localhost:5000/api/bookings/${bookingId}/invoice.pdf`, "_blank");
+    window.open(`https://southfriends.onrender.com/api/bookings/${bookingId}/invoice.pdf`, "_blank");
   };
 
   const applySearch = () => {
@@ -283,7 +283,7 @@ const Bookings = () => {
                       </p>
                       {booking.paymentScreenshot && (
                         <a
-                          href={`http://localhost:5000/uploads/${booking.paymentScreenshot}`}
+                          href={`https://southfriends.onrender.com/uploads/${booking.paymentScreenshot}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-blue-700 underline"

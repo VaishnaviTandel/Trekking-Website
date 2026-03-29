@@ -4,7 +4,7 @@ const TrekCard = ({ trip }) => {
   return (
     <div className="relative overflow-hidden rounded-xl shadow-lg group">
       <img
-        src={`http://localhost:5000/uploads/${trip.coverImage}`}
+        src={`https://southfriends.onrender.com/uploads/${trip.coverImage}`}
         alt={trip.title}
         className="w-full h-60 object-cover"
       />

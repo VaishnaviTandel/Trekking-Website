@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "./AdminLayout";
 import { getAdminToken } from "../services/adminAuth";
 
-const API = "http://localhost:5000";
+const API = "https://southfriends.onrender.com";
 
 const buildAssetUrl = (path) => {
   if (!path) {

@@ -27,7 +27,7 @@ export default function ManageTrips() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/trips")
+      .get("https://southfriends.onrender.com/api/trips")
       .then((res) => {
         setTrips(res.data);
       })
@@ -37,7 +37,7 @@ export default function ManageTrips() {
   }, []);
 
   const deleteTrip = async (id) => {
-    await axios.delete(`http://localhost:5000/api/trips/${id}`);
+    await axios.delete(`https://southfriends.onrender.com/api/trips/${id}`);
     alert("Trip Deleted");
     setTrips((current) => current.filter((trip) => trip._id !== id));
   };
@@ -70,7 +70,7 @@ export default function ManageTrips() {
                     <tr key={trip._id} className="border-t hover:bg-gray-50">
                       <td className="p-4">
                         <img
-                          src={`http://localhost:5000/uploads/${trip.coverImage}`}
+                          src={`https://southfriends.onrender.com/uploads/${trip.coverImage}`}
                           alt={trip.title}
                           className="w-20 h-14 object-cover rounded"
                         />

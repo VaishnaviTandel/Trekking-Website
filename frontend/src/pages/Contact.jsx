@@ -21,7 +21,7 @@ const Contact = () => {
   const handleSubmit = async ()=>{
 
     await axios.post(
-      "http://localhost:5000/api/contact",
+      "https://southfriends.onrender.com/api/contact",
       form
     );
 

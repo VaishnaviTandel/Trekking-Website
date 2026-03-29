@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { getRoomAvailability, getRoomById, getRooms } from "../services/rooms";
 import RoomTypeDetailsModal from "../components/RoomTypeDetailsModal";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "https://southfriends.onrender.com";
 
 const formatPrice = (value) =>
   new Intl.NumberFormat("en-IN", {

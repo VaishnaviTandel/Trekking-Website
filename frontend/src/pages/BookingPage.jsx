@@ -3,7 +3,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-const API = "http://localhost:5000";
+const API = "https://southfriends.onrender.com";
 
 const toDateKey = (value) => {
   const date = new Date(value);

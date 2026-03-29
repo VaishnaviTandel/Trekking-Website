@@ -26,7 +26,7 @@ const imageUrl = (path = "") => {
     return path;
   }
 
-  return `http://localhost:5000/uploads/${path}`;
+  return `https://southfriends.onrender.com/uploads/${path}`;
 };
 
 export default function EditRoom() {
@@ -58,7 +58,7 @@ export default function EditRoom() {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/rooms/${id}`);
+        const response = await axios.get(`https://southfriends.onrender.com/api/rooms/${id}`);
         const data = response.data;
 
         setRoom({
@@ -280,7 +280,7 @@ export default function EditRoom() {
         });
       });
 
-      await axios.put(`http://localhost:5000/api/rooms/${id}`, payload);
+      await axios.put(`https://southfriends.onrender.com/api/rooms/${id}`, payload);
       alert("Room updated successfully.");
       navigate("/admin/rooms");
     } catch (error) {
